@@ -24,7 +24,17 @@ class ScrapingService:
         try:
             print(f"🔍 Starting scrape for keyword: '{keyword}' in {country}-{language}")
             
-            # Step 1: Search for links
+            # Step 1: Get video information
+            print("\n🎥 Searching for relevant video...")
+            video_info = self.scraper.video_link_scraper(keyword)
+            if video_info:
+                print(f"\n✅ Found video for content generation:")
+                print(f"📺 Title: {video_info['title']}")
+                print(f"🔗 URL: {video_info['url']}")
+            else:
+                print("\n❌ No relevant video found for content generation")
+            
+            # Step 2: Search for links
             print("📡 Searching for links...")
             search_results = self.scraper.search_duckduckgo(
                 keyword=keyword, 
@@ -42,7 +52,7 @@ class ScrapingService:
             
             print(f"✅ Found {len(search_results)} initial results")
             
-            # Step 2: Get unique links
+            # Step 3: Get unique links
             unique_links = self.scraper.get_unique_links(search_results, count=15)
             
             if len(unique_links) < 5:
@@ -56,7 +66,7 @@ class ScrapingService:
             
             print(f"🔗 Selected {len(unique_links)} unique links for scraping")
             
-            # Step 3: Scrape content
+            # Step 4: Scrape content
             print("🕷️  Starting content scraping...")
             scraped_data = self.scraper.scrape_multiple_urls(unique_links, target_count=5)
             
@@ -67,7 +77,7 @@ class ScrapingService:
                     'message': 'All selected URLs failed to scrape or had insufficient content'
                 }
             
-            # Step 4: Format final data
+            # Step 5: Format final data
             final_data = {
                 'search_info': {
                     'keyword': keyword,
@@ -76,10 +86,11 @@ class ScrapingService:
                     'timestamp': datetime.now().isoformat(),
                     'total_results_found': len(scraped_data)
                 },
-                'scraped_content': scraped_data
+                'scraped_content': scraped_data,
+                'video_info': video_info  # Add video information to the final data
             }
             
-            # Step 5: Save to JSON file
+            # Step 6: Save to JSON file
             filename = f"scraped_content_{keyword.replace(' ', '_')}_{country}_{language}.json"
             filepath = os.path.join(self.output_dir, filename)
             
@@ -87,6 +98,8 @@ class ScrapingService:
             
             if success:
                 print(f"✅ Successfully scraped {len(scraped_data)} pages")
+                if video_info:
+                    print(f"✅ Found video: {video_info['title']}")
                 print(f"📁 Data saved as: {filepath}")
                 
                 return {

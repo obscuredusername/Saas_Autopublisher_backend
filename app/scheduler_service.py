@@ -1,6 +1,9 @@
 from datetime import datetime
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
+from bson.objectid import ObjectId
+from typing import List, Dict, Any
+import re
 
 class SchedulerService:
     def __init__(self, source_uri: str, source_db: str, source_collection: str,
@@ -18,58 +21,99 @@ class SchedulerService:
         self.is_running = False
         self.empty_checks = 0
         self.max_empty_checks = 5  # Stop after 5 empty checks
+        self.categories_cache = None
+        self.categories_cache_time = None
 
         print(f"✅ Scheduler initialized: {source_db}.{source_collection} -> {target_db}.{target_collection}")
     
+    async def get_categories(self) -> List[Dict[str, Any]]:
+        """Fetch and cache categories from target database"""
+        current_time = datetime.now()
+        
+        # Return cached categories if they're less than 1 hour old
+        if self.categories_cache and self.categories_cache_time:
+            age = (current_time - self.categories_cache_time).total_seconds()
+            if age < 3600:  # 1 hour
+                return self.categories_cache
+        
+        try:
+            cursor = self.target_db.categories.find({})
+            categories = await cursor.to_list(length=None)
+            self.categories_cache = categories
+            self.categories_cache_time = current_time
+            return categories
+        except Exception as e:
+            print(f"❌ Error fetching categories: {str(e)}")
+            return []
+
+    def find_matching_categories(self, content: str, title: str, categories: List[Dict[str, Any]]) -> List[ObjectId]:
+        """Find best matching categories based on content and title"""
+        try:
+            matched_categories = []
+            content_lower = content.lower()
+            title_lower = title.lower()
+            
+            for category in categories:
+                category_name = category.get('name', '').lower()
+                category_description = category.get('description', '').lower()
+                
+                # Check if category name or keywords appear in title or first 1000 chars of content
+                if (category_name in title_lower or 
+                    category_name in content_lower[:1000] or
+                    any(keyword.lower() in title_lower for keyword in category.get('keywords', [])) or
+                    any(keyword.lower() in content_lower[:1000] for keyword in category.get('keywords', []))):
+                    matched_categories.append(ObjectId(category['_id']))
+            
+            # If no matches found, use default category
+            if not matched_categories:
+                matched_categories = [ObjectId("683b3aa5a6b031d7d737362d")]  # Default category
+                
+            return matched_categories
+            
+        except Exception as e:
+            print(f"❌ Error matching categories: {str(e)}")
+            return [ObjectId("683b3aa5a6b031d7d737362d")]  # Default category
+
+    def generate_slug(self, title: str) -> str:
+        """Generate a URL-friendly slug from title"""
+        # Convert to lowercase and replace spaces with hyphens
+        slug = title.lower().strip()
+        # Remove special characters
+        slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+        # Replace spaces with hyphens
+        slug = re.sub(r'[-\s]+', '-', slug)
+        return slug
+
+    def format_datetime(self, dt: datetime) -> str:
+        """Format datetime in the required format"""
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+00:00"
+
     async def check_scheduled_content(self):
-        """Check for content that needs to be published"""
+        """Check for content that needs to be published (date/time in the past and status 'pending')"""
         try:
             current_time = datetime.now()
             current_date = current_time.strftime("%Y-%m-%d")
             current_time_str = current_time.strftime("%H:%M")
-            
+
             print(f"🔍 Checking for content at: {current_date} {current_time_str}")
-            
+
             published_count = 0
-            
-            # Query for exact date and time match
-            exact_match_query = {
+
+            # Query for content scheduled for now or in the past
+            query = {
                 "status": "pending",
-                "scheduled_date": current_date,
-                "scheduled_time": current_time_str
+                "$or": [
+                    {"scheduled_date": {"$lt": current_date}},
+                    {"scheduled_date": current_date, "scheduled_time": {"$lte": current_time_str}}
+                ]
             }
-            
-            exact_matches = self.source_db[self.source_collection].find(exact_match_query)
-            async for content in exact_matches:
-                print(f"✅ EXACT MATCH: {content.get('keyword', 'Unknown')} - {content.get('scheduled_date')} at {content.get('scheduled_time')}")
+
+            cursor = self.source_db[self.source_collection].find(query)
+            async for content in cursor:
+                print(f"✅ READY TO PUBLISH: {content.get('content', '')[:30]}... - {content.get('scheduled_date')} at {content.get('scheduled_time')}")
                 await self.publish_content(content)
                 published_count += 1
-            
-            # Query for overdue content (past dates)
-            overdue_query = {
-                "status": "pending",
-                "scheduled_date": {"$lt": current_date}
-            }
-            
-            overdue_matches = self.source_db[self.source_collection].find(overdue_query)
-            async for content in overdue_matches:
-                print(f"✅ OVERDUE: {content.get('keyword', 'Unknown')} - {content.get('scheduled_date')} at {content.get('scheduled_time')}")
-                await self.publish_content(content)
-                published_count += 1
-            
-            # Query for content scheduled for today but past time
-            past_time_today_query = {
-                "status": "pending",
-                "scheduled_date": current_date,
-                "scheduled_time": {"$lt": current_time_str}
-            }
-            
-            past_time_matches = self.source_db[self.source_collection].find(past_time_today_query)
-            async for content in past_time_matches:
-                print(f"✅ PAST TIME TODAY: {content.get('keyword', 'Unknown')} - {content.get('scheduled_date')} at {content.get('scheduled_time')}")
-                await self.publish_content(content)
-                published_count += 1
-            
+
             if published_count == 0:
                 self.empty_checks += 1
                 print(f"ℹ️ No content ready for publishing (Check {self.empty_checks}/{self.max_empty_checks})")
@@ -85,29 +129,27 @@ class SchedulerService:
             raise
 
     async def publish_content(self, content: dict):
-        """Publish content to target database"""
+        """Publish content to target database (strip scheduling fields, insert as-is, set status to published in both DBs)"""
         try:
-            # Create formatted content with required fields and structure
-            current_time = datetime.now()
-            formatted_content = {
-                "title": content.get('title'),
-                "content": content.get('content'),
-                "slug": content.get('slug'),
-                "excerpt": content.get('excerpt', content.get('title', '')[:150]),
-                "status": "published",
-                "categoryIds": content.get('categoryIds', [{"$oid": "683b3aa5a6b031d7d737362d"}]),
-                "tagIds": content.get('tagIds', [{"$oid": "683b3ab8a6b031d7d7373637"}]),
-                "authorId": {"$oid": "683b3771a6b031d7d73735d7"},  # Default author ID
-                "createdAt": current_time,  # Store as native Python datetime
-                "updatedAt": current_time,  # Store as native Python datetime
-                "__v": {"$numberInt": "0"}
-            }
+            # Remove scheduling fields
+            content_to_publish = dict(content)
+            for key in ["scheduled_date", "scheduled_time"]:
+                content_to_publish.pop(key, None)
+            # Remove MongoDB _id to avoid duplicate key error
+            content_to_publish.pop("_id", None)
+            # Set status to published
+            content_to_publish["status"] = "published"
 
-            print(f"📤 Publishing: {content.get('keyword', 'Unknown')}")
-            
-            # Insert formatted content to target collection
-            await self.target_db[self.target_collection].insert_one(formatted_content)
-            
+            print("\n📦 CONTENT BEING PUSHED TO DATABASE:")
+            print("=" * 80)
+            print("Content:", str(content_to_publish)[:200] + ("..." if len(str(content_to_publish)) > 200 else ""))
+            print("=" * 80)
+
+            # Insert to target collection
+            result = await self.target_db[self.target_collection].insert_one(content_to_publish)
+            if result.inserted_id:
+                print(f"✅ Content saved with ID: {result.inserted_id}")
+
             # Update status in source collection
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},
@@ -116,9 +158,8 @@ class SchedulerService:
                     "published_at": datetime.now()
                 }}
             )
-            
-            print(f"✅ Published: {content.get('keyword', 'Unknown')}")
-            
+            print(f"✅ Published content.")
+
         except Exception as e:
             print(f"❌ Error publishing content: {str(e)}")
             

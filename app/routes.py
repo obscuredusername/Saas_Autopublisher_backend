@@ -67,6 +67,13 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
     # Schedule background tasks for content generation
     for keyword_item in keyword_request.keywords:
         if response.unique_links:
+            # Determine content type based on keyword
+            content_type = "biography"  # Default to biography for person names
+            if any(tech_term in keyword_item.text.lower() for tech_term in ["how to", "guide", "tutorial", "learn", "using"]):
+                content_type = "how_to"
+            elif any(company_term in keyword_item.text.lower() for company_term in ["company", "corporation", "inc", "ltd"]):
+                content_type = "company"
+            
             background_tasks.add_task(
                 content_service.scrape_and_generate_content,
                 response.unique_links,
@@ -74,9 +81,10 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
                 keyword_request.country.lower(),
                 keyword_request.language.lower(),
                 keyword_item.minLength,
-                "default@user.com",
+                keyword_request.user_email,  # Pass email separately
                 keyword_item.scheduledDate,
-                keyword_item.scheduledTime
+                keyword_item.scheduledTime,
+                content_type  # Pass the determined content type
             )
     
     return response

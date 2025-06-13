@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import re
 import random
+import os
 
 class WebContentScraper:
     def __init__(self):
@@ -315,27 +316,113 @@ class WebContentScraper:
                 time.sleep(delay)
         
         return results
+    
+    def video_link_scraper(self, keyword):
+        """
+        Scrape the first YouTube video link and title for a given keyword
+        
+        Args:
+            keyword (str): The search keyword
+            
+        Returns:
+            dict: Dictionary containing 'title' and 'url' of the first YouTube video found, or None if no video found
+        """
+        try:
+            # Append 'video' to the keyword if it's not already there
+            search_keyword = f"{keyword} video" if "video" not in keyword.lower() else keyword
+            
+            # Get the search results HTML
+            search_url = "https://duckduckgo.com/"
+            params = {
+                'q': search_keyword,
+                't': 'h_',
+                'ia': 'web'
+            }
+            
+            print(f"Searching for: {search_keyword}")
+            
+            # First request to get the token
+            response = self.session.get(
+                search_url,
+                params={'q': search_keyword},
+                timeout=self.default_timeout
+            )
+            
+            if response.status_code == 200:
+                # Now get the actual search results
+                search_params = {
+                    'q': search_keyword,
+                    't': 'h_',
+                    'ia': 'web',
+                    's': '0'
+                }
+                
+                time.sleep(1)  # Small delay between requests
+                
+                response = self.session.get(
+                    'https://duckduckgo.com/html/',
+                    params=search_params,
+                    timeout=self.default_timeout,
+                    headers={
+                        'User-Agent': random.choice(self.user_agents),
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'Referer': 'https://duckduckgo.com',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
+                )
+                
+                if response.status_code == 200:
+                    # Parse the HTML content
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Find all result divs
+                    results = soup.find_all('div', class_='result')
+                    
+                    # Look for YouTube video links
+                    for result in results:
+                        link = result.find('a', class_='result__a')
+                        if not link:
+                            continue
+                            
+                        href = link.get('href', '')
+                        title = link.get_text(strip=True)
+                        
+                        # Handle relative URLs
+                        if href.startswith('/'):
+                            href = 'https://duckduckgo.com' + href
+                            
+                        # Extract actual URL from DuckDuckGo redirect
+                        if 'duckduckgo.com/l/?uddg=' in href:
+                            try:
+                                from urllib.parse import unquote
+                                href = unquote(href.split('uddg=')[-1].split('&')[0])
+                            except:
+                                continue
+                        
+                        # Check if it's a YouTube video
+                        if 'youtube.com/watch' in href or 'youtu.be/' in href:
+                            print(f"\nFound YouTube video:")
+                            print(f"Title: {title}")
+                            print(f"URL: {href}")
+                            return {
+                                'title': title,
+                                'url': href
+                            }
+                    
+                    print("No YouTube videos found in the search results.")
+                    return None
+                else:
+                    print(f"❌ Failed to get search results. Status code: {response.status_code}")
+                    return None
+                    
+            return None
+            
+        except Exception as e:
+            print(f"Error searching for video: {str(e)}")
+            return None
 
-    def search_social_media(self, keyword):
-        """
-        Search for a keyword on different social media platforms and return first link for each
-        """
-        social_platforms = ['instagram', 'linkedin', 'twitter']
-        results = {}
-        
-        for platform in social_platforms:
-            search_query = f"{keyword} {platform}"
-            print(f"\nSearching for: {search_query}")
-            
-            links = self.search_duckduckgo(search_query, max_results=1)
-            if links:
-                results[platform] = links[0]
-                print(f"{platform.capitalize()} Link: {links[0]}")
-            else:
-                results[platform] = None
-                print(f"No {platform} link found")
-            
-            # Add delay between searches
-            time.sleep(2)
-        
-        return results
+    

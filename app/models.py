@@ -29,6 +29,7 @@ class KeywordRequest(BaseModel):
     keywords: List[KeywordItem]
     country: str = "us"
     language: str = "en"
+    user_email: str = "default@user.com"
 
 class ScrapingResponse(BaseModel):
     success: bool
