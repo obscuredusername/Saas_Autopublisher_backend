@@ -20,7 +20,7 @@ class SchedulerService:
         
         self.is_running = False
         self.empty_checks = 0
-        self.max_empty_checks = 5  # Stop after 5 empty checks
+        self.max_empty_checks = 10  # Stop after 5 empty checks
         self.categories_cache = None
         self.categories_cache_time = None
 
@@ -172,10 +172,10 @@ class SchedulerService:
         while self.is_running:
             try:
                 await self.check_scheduled_content()
-                await asyncio.sleep(60)
+                await asyncio.sleep(360)
             except Exception as e:
                 print(f"❌ Scheduler error: {str(e)}")
-                await asyncio.sleep(60)
+                await asyncio.sleep(360)
 
     def resume_scheduler(self):
         """Resume the scheduler"""

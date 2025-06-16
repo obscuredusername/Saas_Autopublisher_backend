@@ -298,27 +298,16 @@ SOURCE MATERIAL:
             
             title = title_response.choices[0].message.content.strip()
             
-            # Create slug from title with timestamp to ensure uniqueness
-            timestamp = time.strftime("%Y%m%d%H%M%S")
+            # Create slug from keyword instead of title
+            clean_keyword = keyword.lower()
+            clean_keyword = re.sub(r'[^a-z0-9\s-]', '', clean_keyword)
+            clean_keyword = re.sub(r'\s+', '-', clean_keyword)
+            clean_keyword = re.sub(r'-+', '-', clean_keyword)
+            clean_keyword = clean_keyword.strip('-')
+            slug = clean_keyword
             
-            # First create a clean version of the title for the slug
-            # Convert to lowercase and replace spaces with hyphens
-            clean_title = title.lower()
-            # Remove special characters and replace spaces with hyphens
-            clean_title = re.sub(r'[^a-z0-9\s-]', '', clean_title)
-            clean_title = re.sub(r'\s+', '-', clean_title)
-            # Remove multiple consecutive hyphens
-            clean_title = re.sub(r'-+', '-', clean_title)
-            # Remove leading and trailing hyphens
-            clean_title = clean_title.strip('-')
-            
-            # Create the final slug with timestamp
-            # Format: creative-title-YYYYMMDDHHMMSS
-            slug = f"{clean_title}-{timestamp}"
-
-            print(f"📝 Generated creative title: {title}")
-            print(f"🔗 Generated unique slug: {slug}")
-            print(f"🔍 Clean title for slug: {clean_title}")
+            print(f"📝 Extracted title: {title}")
+            print(f"🔗 Generated slug from keyword: {slug}")
 
             # Process scraped content
             if not scraped_data.get("scraped_content"):
@@ -968,16 +957,16 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 word_count = len(generated_content.split())
                 print(f"📝 Expanded content: {word_count} words")
 
-            # Create slug from title
-            clean_title = title.lower()
-            clean_title = re.sub(r'[^a-z0-9\s-]', '', clean_title)
-            clean_title = re.sub(r'\s+', '-', clean_title)
-            clean_title = re.sub(r'-+', '-', clean_title)
-            clean_title = clean_title.strip('-')
-            slug = clean_title
+            # Create slug from keyword instead of title
+            clean_keyword = keyword.lower()
+            clean_keyword = re.sub(r'[^a-z0-9\s-]', '', clean_keyword)
+            clean_keyword = re.sub(r'\s+', '-', clean_keyword)
+            clean_keyword = re.sub(r'-+', '-', clean_keyword)
+            clean_keyword = clean_keyword.strip('-')
+            slug = clean_keyword
             
             print(f"📝 Extracted title: {title}")
-            print(f"🔗 Generated slug: {slug}")
+            print(f"🔗 Generated slug from keyword: {slug}")
 
             # Await image generation results
             print("⏳ Waiting for image generation to complete...")
