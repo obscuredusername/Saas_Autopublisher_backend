@@ -7,9 +7,16 @@ import re
 
 class SchedulerService:
     def __init__(self, source_uri: str, source_db: str, source_collection: str,
-                 target_uri: str, target_db: str, target_collection: str):
+                 target_uri: str = None, target_db: str = None, target_collection: str = "posts"):
         """Initialize scheduler service with database connections"""
         self.source_client = AsyncIOMotorClient(source_uri)
+        
+        # Use global variables for target database if not provided
+        if target_uri is None or target_db is None:
+            from app.routes import TARGET_DB_URI, TARGET_DB
+            target_uri = TARGET_DB_URI
+            target_db = TARGET_DB
+        
         self.target_client = AsyncIOMotorClient(target_uri)
         
         self.source_db = self.source_client[source_db]
@@ -20,7 +27,7 @@ class SchedulerService:
         
         self.is_running = False
         self.empty_checks = 0
-        self.max_empty_checks = 10  # Stop after 5 empty checks
+        self.max_empty_checks = 5  # Stop after 5 empty checks
         self.categories_cache = None
         self.categories_cache_time = None
 
@@ -199,4 +206,21 @@ class SchedulerService:
             return True
         except Exception as e:
             print(f"❌ Connection test failed: {str(e)}")
+            return False
+
+    def update_target_connection(self, target_uri: str, target_db: str):
+        """Update target database connection with new configuration"""
+        try:
+            # Close existing target connection
+            if hasattr(self, 'target_client'):
+                self.target_client.close()
+            
+            # Create new target connection
+            self.target_client = AsyncIOMotorClient(target_uri)
+            self.target_db = self.target_client[target_db]
+            
+            print(f"✅ Target database connection updated: {target_db}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to update target database connection: {str(e)}")
             return False

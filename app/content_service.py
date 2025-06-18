@@ -22,8 +22,9 @@ class ContentService:
         self.scraping_service.db = db
         self.content_generator = ContentGenerator()  # No db dependency
         
-        # Initialize target DB connection
-        self.target_db = AsyncIOMotorClient(os.getenv('TARGET_DB_URI'))[os.getenv('TARGET_DB')]
+        # Initialize target DB connection using global variables from routes
+        from app.routes import TARGET_DB_URI, TARGET_DB
+        self.target_db = AsyncIOMotorClient(TARGET_DB_URI)[TARGET_DB]
 
     def generate_slug(self, title: str) -> str:
         """Generate a URL-friendly slug from the title"""

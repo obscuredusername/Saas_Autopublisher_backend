@@ -18,6 +18,40 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+# Database Configuration Models
+class TargetDBConfig(BaseModel):
+    target_db_uri: str
+    target_db: str
+
+class TargetDBResponse(BaseModel):
+    success: bool
+    message: str
+    target_db_uri: str
+    target_db: str
+
+class StoredDBConfig(BaseModel):
+    name: str
+    target_db_uri: str
+    target_db: str
+    description: Optional[str] = None
+
+class StoredDBResponse(BaseModel):
+    success: bool
+    message: str
+    name: str
+    target_db_uri: str
+    target_db: str
+    description: Optional[str] = None
+
+class SelectDBRequest(BaseModel):
+    name: str
+
+class ListDBResponse(BaseModel):
+    success: bool
+    message: str
+    databases: List[StoredDBResponse]
+    current_active: Optional[str] = None
+
 # Scraping Models
 class KeywordItem(BaseModel):
     text: str

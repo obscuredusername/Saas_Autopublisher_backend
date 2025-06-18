@@ -43,7 +43,8 @@ async def startup_db_client():
     db = client[SOURCE_DB]
     app.state.db = db
     
-    # Initialize scheduler
+    # Initialize scheduler using global variables from routes
+    from app.routes import TARGET_DB_URI, TARGET_DB
     scheduler = SchedulerService(
         MONGODB_URL, 
         SOURCE_DB, 

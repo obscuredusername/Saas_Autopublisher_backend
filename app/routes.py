@@ -6,15 +6,176 @@ from app.models import (
     LoginRequest, 
     LoginResponse,
     KeywordRequest,
-    ScrapingResponse
+    ScrapingResponse,
+    TargetDBConfig,
+    TargetDBResponse,
+    StoredDBConfig,
+    StoredDBResponse,
+    SelectDBRequest,
+    ListDBResponse
 )
 from app.auth_service import AuthService
 from app.content_service import ContentService
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import json
 
 router = APIRouter()
 auth_service = AuthService()
+
+TARGET_DB_URI = os.getenv('TARGET_DB_URI')
+TARGET_DB = os.getenv('TARGET_DB', 'CRM')
+CURRENT_ACTIVE_DB = "default"
+
+# Helper to get db config collection
+async def get_db_config_collection(request: Request):
+    return request.app.state.db["db_configs"]
+
+@router.post("/store-db-config", response_model=StoredDBResponse)
+async def store_database_config(config: StoredDBConfig, request: Request):
+    try:
+        test_client = AsyncIOMotorClient(config.target_db_uri)
+        await test_client.admin.command('ping')
+        test_client.close()
+        db_configs = await get_db_config_collection(request)
+        # Upsert config by name
+        await db_configs.update_one(
+            {"name": config.name},
+            {"$set": {
+                "target_db_uri": config.target_db_uri,
+                "target_db": config.target_db,
+                "description": config.description or f"Database configuration for {config.name}"
+            }},
+            upsert=True
+        )
+        return StoredDBResponse(
+            success=True,
+            message=f"Database configuration '{config.name}' stored successfully",
+            name=config.name,
+            target_db_uri=config.target_db_uri,
+            target_db=config.target_db,
+            description=config.description
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to connect to database: {str(e)}")
+
+@router.post("/select-db", response_model=TargetDBResponse)
+async def select_database(request: Request, select_request: SelectDBRequest):
+    global TARGET_DB_URI, TARGET_DB, CURRENT_ACTIVE_DB
+    db_configs = await get_db_config_collection(request)
+    db_config = await db_configs.find_one({"name": select_request.name})
+    if not db_config:
+        raise HTTPException(status_code=404, detail=f"Database configuration '{select_request.name}' not found")
+    try:
+        test_client = AsyncIOMotorClient(db_config["target_db_uri"])
+        await test_client.admin.command('ping')
+        test_client.close()
+        TARGET_DB_URI = db_config["target_db_uri"]
+        TARGET_DB = db_config["target_db"]
+        CURRENT_ACTIVE_DB = select_request.name
+        os.environ['TARGET_DB_URI'] = db_config["target_db_uri"]
+        os.environ['TARGET_DB'] = db_config["target_db"]
+        scheduler = request.app.state.scheduler
+        if scheduler:
+            scheduler.update_target_connection(db_config["target_db_uri"], db_config["target_db"])
+        return TargetDBResponse(
+            success=True,
+            message=f"Database '{select_request.name}' activated successfully. All operations will now use {db_config['target_db']}",
+            target_db_uri=db_config["target_db_uri"],
+            target_db=db_config["target_db"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to connect to database '{select_request.name}': {str(e)}")
+
+@router.get("/list-db-configs", response_model=ListDBResponse)
+async def list_database_configs(request: Request):
+    db_configs = await get_db_config_collection(request)
+    configs = db_configs.find()
+    databases = []
+    async for config in configs:
+        databases.append(StoredDBResponse(
+            success=True,
+            message="",
+            name=config["name"],
+            target_db_uri=config["target_db_uri"],
+            target_db=config["target_db"],
+            description=config.get("description")
+        ))
+    return ListDBResponse(
+        success=True,
+        message=f"Found {len(databases)} database configurations",
+        databases=databases,
+        current_active=CURRENT_ACTIVE_DB
+    )
+
+@router.delete("/delete-db-config/{name}")
+async def delete_database_config(name: str, request: Request):
+    global CURRENT_ACTIVE_DB
+    db_configs = await get_db_config_collection(request)
+    db_config = await db_configs.find_one({"name": name})
+    if not db_config:
+        raise HTTPException(status_code=404, detail=f"Database configuration '{name}' not found")
+    if name == "default":
+        raise HTTPException(status_code=400, detail="Cannot delete the default database configuration")
+    if name == CURRENT_ACTIVE_DB:
+        CURRENT_ACTIVE_DB = "default"
+        default_config = await db_configs.find_one({"name": "default"})
+        if default_config:
+            TARGET_DB_URI = default_config["target_db_uri"]
+            TARGET_DB = default_config["target_db"]
+    await db_configs.delete_one({"name": name})
+    return {"success": True, "message": f"Database configuration '{name}' deleted successfully"}
+
+@router.post("/set-target-db", response_model=TargetDBResponse)
+async def set_target_database(config: TargetDBConfig, request: Request):
+    """
+    Set target MongoDB URI and database name as global variables (legacy endpoint)
+    """
+    global TARGET_DB_URI, TARGET_DB
+    
+    try:
+        # Test the connection to ensure it's valid
+        test_client = AsyncIOMotorClient(config.target_db_uri)
+        await test_client.admin.command('ping')
+        test_client.close()
+        
+        # Set global variables
+        TARGET_DB_URI = config.target_db_uri
+        TARGET_DB = config.target_db
+        
+        # Update environment variables
+        os.environ['TARGET_DB_URI'] = config.target_db_uri
+        os.environ['TARGET_DB'] = config.target_db
+        
+        # Update scheduler's target connection
+        scheduler = request.app.state.scheduler
+        if scheduler:
+            scheduler.update_target_connection(config.target_db_uri, config.target_db)
+        
+        return TargetDBResponse(
+            success=True,
+            message=f"Target database configuration updated successfully. All operations will now use {config.target_db}",
+            target_db_uri=config.target_db_uri,
+            target_db=config.target_db
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to connect to target database: {str(e)}"
+        )
+
+@router.get("/get-target-db", response_model=TargetDBResponse)
+async def get_target_database():
+    """
+    Get current target database configuration
+    """
+    return TargetDBResponse(
+        success=True,
+        message="Current target database configuration",
+        target_db_uri=TARGET_DB_URI,
+        target_db=TARGET_DB
+    )
 
 # Auth endpoints
 @router.post("/signup", response_model=User)
