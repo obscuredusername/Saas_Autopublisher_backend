@@ -13,6 +13,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
 import json
+import boto3
+from botocore.exceptions import BotoCoreError, NoCredentialsError
+from uuid import uuid4
+import tempfile
+from PIL import Image
 
 load_dotenv()
 
@@ -606,10 +611,10 @@ Additional source material for reference:
                                 if image_url:
                                     print(f"✅ BFL image generated: {image_url}")
                                     
-                                    # Now upload to IMGBB
-                                    imgbb_url = await self.upload_to_imgbb(image_url, session)
-                                    if imgbb_url:
-                                        return imgbb_url
+                                    # Now upload to S3
+                                    s3_url = await self.upload_to_s3(image_url, session)
+                                    if s3_url:
+                                        return s3_url
                                     else:
                                         # Return BFL URL as fallback
                                         return image_url
@@ -636,54 +641,75 @@ Additional source material for reference:
             print(f"❌ BFL generation error: {str(e)}")
             return None
 
-    async def upload_to_imgbb(self, image_url: str, session: aiohttp.ClientSession) -> Optional[str]:
+    async def upload_to_s3(self, image_url: str, session: aiohttp.ClientSession) -> Optional[str]:
         """
-        Download image from BFL and upload to IMGBB with maximum expiration time
+        Download image from BFL and upload to AWS S3 bucket, returning the public URL.
+        Convert the image to JPG before upload.
         """
         try:
-            imgbb_api_key = os.getenv("IMGBB_UPLOAD")
-            if not imgbb_api_key:
-                print("⚠️ IMGBB API key not found, skipping upload")
+            print("AWS_ACCESS_KEY_ID:", os.getenv("AWS_ACCESS_KEY_ID"))
+            print("AWS_SECRET_ACCESS_KEY:", os.getenv("AWS_SECRET_ACCESS_KEY"))
+            print("S3_BUCKET_NAME:", os.getenv("S3_BUCKET_NAME"))
+            print("S3_REGION:", os.getenv("S3_REGION"))
+            aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
+            aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+            bucket_name = os.getenv("S3_BUCKET_NAME")
+            region = os.getenv("S3_REGION", "eu-north-1")
+            if not all([aws_access_key, aws_secret_key, bucket_name, region]):
+                print("⚠️ AWS S3 credentials or bucket info missing in environment variables")
                 return None
-            
+
             print(f"📥 Downloading image from BFL...")
-            
-            # Download the image from BFL
             async with session.get(image_url) as response:
                 if response.status != 200:
                     print(f"❌ Failed to download image from BFL: {response.status}")
                     return None
-                
                 image_data = await response.read()
-            
-            print(f"📤 Uploading to IMGBB...")
-            
-            # Upload to IMGBB with maximum expiration time (31536000 seconds = 1 year)
-            imgbb_url = "https://api.imgbb.com/1/upload"
-            encoded_image = base64.b64encode(image_data).decode('utf-8')
-            
-            data = {
-                'key': imgbb_api_key,
-                'image': encoded_image,
-                'expiration': 31536000  # Maximum allowed expiration time (1 year)
-            }
-            
-            async with session.post(imgbb_url, data=data) as imgbb_response:
-                if imgbb_response.status != 200:
-                    print(f"❌ IMGBB upload failed: {imgbb_response.status}")
-                    return None
-                    
-                result = await imgbb_response.json()
-                if result.get('success'):
-                    imgbb_image_url = result['data']['url']
-                    print(f"✅ Image uploaded to IMGBB with 1-year expiration: {imgbb_image_url}")
-                    return imgbb_image_url
-                else:
-                    print(f"❌ IMGBB upload failed: {result}")
-                    return None
-                    
+
+            # Save to a temporary PNG file first
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_png_file:
+                tmp_png_file.write(image_data)
+                png_file_path = tmp_png_file.name
+
+            # Convert PNG to JPG using PIL
+            jpg_file_path = png_file_path.replace('.png', '.jpg')
+            try:
+                with Image.open(png_file_path) as im:
+                    rgb_im = im.convert('RGB')
+                    rgb_im.save(jpg_file_path, 'JPEG', quality=95)
+            except Exception as e:
+                print(f"❌ Error converting PNG to JPG: {str(e)}")
+                os.remove(png_file_path)
+                return None
+            finally:
+                os.remove(png_file_path)  # Remove the PNG file after conversion
+
+            s3_key = f"bfl-images/{uuid4().hex}.jpg"
+            print(f"📤 Uploading to S3 bucket {bucket_name} as {s3_key}...")
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=aws_access_key,
+                aws_secret_access_key=aws_secret_key,
+                region_name=region
+            )
+            try:
+                s3.upload_file(
+                    Filename=jpg_file_path,
+                    Bucket=bucket_name,
+                    Key=s3_key,
+                    ExtraArgs={'ContentType': 'image/jpeg'}
+                )
+            except (BotoCoreError, NoCredentialsError) as e:
+                print(f"❌ S3 upload failed: {str(e)}")
+                return None
+            finally:
+                os.remove(jpg_file_path)
+
+            url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
+            print(f"✅ Image uploaded to S3: {url}")
+            return url
         except Exception as e:
-            print(f"❌ IMGBB upload error: {str(e)}")
+            print(f"❌ S3 upload error: {str(e)}")
             return None
 
     async def generate_blog_plan(self, keyword: str, language: str = "en") -> Dict[str, Any]:
@@ -1104,3 +1130,25 @@ def test_bfl_image_generation(api_key: str, prompt: str, width: int = 1024, heig
             return None
 
     asyncio.run(run())
+
+if __name__ == "__main__":
+    import asyncio
+    import sys
+
+    async def main():
+        # Prompt user for a keyword or use a default
+        prompt = input("Enter a prompt for the image (or leave blank for default): ")
+        if not prompt:
+            prompt = "A futuristic city skyline at sunset, ultra-realistic"
+        print(f"\nGenerating image for prompt: '{prompt}'\n")
+        
+        # Create ContentGenerator instance
+        generator = ContentGenerator()
+        # Generate image and upload to S3
+        image_url = await generator.generate_image(prompt)
+        if image_url:
+            print(f"\n✅ Image uploaded to S3: {image_url}\n")
+        else:
+            print("\n❌ Image generation or upload failed.\n")
+
+    asyncio.run(main())
