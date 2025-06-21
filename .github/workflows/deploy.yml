@@ -25,7 +25,11 @@ jobs:
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt --break-system-packages
-            # Restart the app with uvicorn + pm2 or systemd
-            pkill -f uvicorn || true
-            nohup uvicorn main:app --host 0.0.0.0 --port 8000 --reload > output.log 2>&1 &
+
+            # Restart or start FastAPI app via PM2 using python3 interpreter
+            pm2 restart saas-api || \
+              pm2 start venv/bin/uvicorn --interpreter python3 --name saas-api -- main:app --host 0.0.0.0 --port 8000
+
+            # Optional: Reload nginx if config changed
+            sudo systemctl reload nginx
           EOF
