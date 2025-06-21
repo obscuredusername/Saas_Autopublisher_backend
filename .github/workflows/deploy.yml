@@ -24,7 +24,7 @@ jobs:
             cd /var/www/Saas_Autopublisher_backend
             git pull origin main
             source venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r requirements.txt --break-system-packages
             # Restart the app with uvicorn + pm2 or systemd
             pkill -f uvicorn || true
             nohup uvicorn main:app --host 0.0.0.0 --port 8000 --reload > output.log 2>&1 &
