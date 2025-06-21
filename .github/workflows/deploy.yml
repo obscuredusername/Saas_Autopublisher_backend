@@ -1,0 +1,31 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /var/www/Saas_Autopublisher_backend
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            # Restart the app with uvicorn + pm2 or systemd
+            pkill -f uvicorn || true
+            nohup uvicorn main:app --host 0.0.0.0 --port 8000 --reload > output.log 2>&1 &
+          EOF
