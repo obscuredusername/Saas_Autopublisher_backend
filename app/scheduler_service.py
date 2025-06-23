@@ -123,10 +123,7 @@ class SchedulerService:
 
             if published_count == 0:
                 self.empty_checks += 1
-                print(f"ℹ️ No content ready for publishing (Check {self.empty_checks}/{self.max_empty_checks})")
-                if self.empty_checks >= self.max_empty_checks:
-                    print("🛑 Scheduler paused due to no content")
-                    self.is_running = False
+                print(f"ℹ️ No content ready for publishing")
             else:
                 self.empty_checks = 0  # Reset counter when content is found
                 print(f"📊 Published {published_count} items")
@@ -179,10 +176,10 @@ class SchedulerService:
         while self.is_running:
             try:
                 await self.check_scheduled_content()
-                await asyncio.sleep(360)
+                await asyncio.sleep(300)
             except Exception as e:
                 print(f"❌ Scheduler error: {str(e)}")
-                await asyncio.sleep(360)
+                await asyncio.sleep(300)
 
     def resume_scheduler(self):
         """Resume the scheduler"""
