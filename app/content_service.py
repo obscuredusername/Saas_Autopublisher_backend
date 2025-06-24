@@ -50,78 +50,166 @@ class ContentService:
         try:
             tasks = []
             all_unique_links = []
-            # Fetch categories once before starting tasks
             categories = await self.get_all_categories()
             subcategories = [cat for cat in categories if cat.get('parentId')]
             category_names = [cat['name'] for cat in categories]
-            # Use asyncio tasks instead of threads
-            keyword_tasks = []
             for idx, keyword_item in enumerate(keyword_request.keywords):
-                print(f"🔍 Processing keyword: '{keyword_item.text}'")
-                def search_with_retry():
-                    search_results = self.scraping_service.scraper.search_duckduckgo(
-                        keyword=keyword_item.text.strip(),
-                        country_code=keyword_request.country.lower(),
-                        language=keyword_request.language.lower(),
-                        max_results=25
+                tasks.append(asyncio.create_task(
+                    self.orchestrate_keyword_pipeline(
+                        keyword_item,
+                        keyword_request,
+                        categories,
+                        subcategories,
+                        category_names
                     )
-                    if not search_results:
-                        print(f"🔄 No search results for '{keyword_item.text}', retrying in 5 seconds...")
-                        time.sleep(5)
-                        search_results = self.scraping_service.scraper.search_duckduckgo(
-                            keyword=keyword_item.text.strip(),
-                            country_code=keyword_request.country.lower(),
-                            language=keyword_request.language.lower(),
-                            max_results=25
-                        )
-                    return search_results
-                search_results = search_with_retry()
-                if search_results:
-                    unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
-                    min_length = getattr(keyword_item, 'minLength', None)
-                    if min_length is None:
-                        min_length = 7500
-                    if unique_links:
-                        # Schedule as asyncio task
-                        task = asyncio.create_task(
-                            self.scrape_and_generate_content(
-                                unique_links, keyword_item.text, keyword_request.country.lower(), keyword_request.language.lower(), min_length, keyword_request.user_email, keyword_item.scheduledDate, keyword_item.scheduledTime, "biography", None, None, categories, subcategories, category_names
-                            )
-                        )
-                        keyword_tasks.append(task)
-                        print(f"🧵 Scheduled task for keyword '{keyword_item.text}'")
-                        tasks.append({
-                            "keyword": keyword_item.text,
-                            "scheduledDate": keyword_item.scheduledDate,
-                            "scheduledTime": keyword_item.scheduledTime,
-                            "minLength": min_length,
-                            "links_found": len(unique_links),
-                            "status": "scheduled"
-                        })
-                        if idx < len(keyword_request.keywords) - 1:
-                            print("⏳ Waiting 10 seconds before starting next task...")
-                            await asyncio.sleep(10)
-                    else:
-                        tasks.append({
-                            "keyword": keyword_item.text,
-                            "links_found": 0,
-                            "status": "no_links_found"
-                        })
-            # Wait for all keyword tasks to finish
-            if keyword_tasks:
-                await asyncio.gather(*keyword_tasks)
+                ))
+                if idx < len(keyword_request.keywords) - 1:
+                    print("⏳ Waiting 10 seconds before starting next task...")
+                    await asyncio.sleep(10)
+            if tasks:
+                await asyncio.gather(*tasks)
             return ScrapingResponse(
                 success=True,
-                message=f"Found {len(all_unique_links)} unique links across {len(tasks)} keywords",
-                tasks=tasks,
+                message=f"Started processing {len(keyword_request.keywords)} keywords.",
+                tasks=[{"keyword": k.text, "status": "scheduled"} for k in keyword_request.keywords],
                 country=keyword_request.country.lower(),
                 language=keyword_request.language.lower(),
                 status="processing",
-                unique_links=list(set(all_unique_links))
+                unique_links=[]
             )
         except Exception as e:
             print(f"Error in process_keywords: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+    async def orchestrate_keyword_pipeline(
+        self,
+        keyword_item,
+        keyword_request,
+        categories,
+        subcategories,
+        category_names
+    ):
+        loop = asyncio.get_running_loop()
+        # 1. Get links (blocking)
+        def search_with_retry():
+            search_results = self.scraping_service.scraper.search_duckduckgo(
+                keyword=keyword_item.text.strip(),
+                country_code=keyword_request.country.lower(),
+                language=keyword_request.language.lower(),
+                max_results=25
+            )
+            if not search_results:
+                print(f"🔄 No search results for '{keyword_item.text}', retrying in 5 seconds...")
+                time.sleep(5)
+                search_results = self.scraping_service.scraper.search_duckduckgo(
+                    keyword=keyword_item.text.strip(),
+                    country_code=keyword_request.country.lower(),
+                    language=keyword_request.language.lower(),
+                    max_results=25
+                )
+            return search_results
+        search_results = await loop.run_in_executor(None, search_with_retry)
+        if not search_results:
+            print(f"No search results for '{keyword_item.text}' after retry.")
+            return
+        unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
+        if not unique_links:
+            print(f"No unique links found for '{keyword_item.text}'")
+            return
+        # 2. Start blog plan generation (async)
+        blog_plan_task = asyncio.create_task(
+            self.content_generator.generate_blog_plan(keyword_item.text, keyword_request.language)
+        )
+        # 3. Start scraping links (blocking, in executor)
+        def scrape_links():
+            return self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
+        scraping_task = loop.run_in_executor(None, scrape_links)
+        # 4. As soon as blog plan is ready, start first image generation (async)
+        blog_plan = await blog_plan_task
+        image1_task = None
+        image2_task = None
+        if blog_plan and "image_prompts" in blog_plan and blog_plan["image_prompts"]:
+            img_prompt1 = blog_plan["image_prompts"][0]["prompt"]
+            image1_task = asyncio.create_task(self.content_generator.generate_image(img_prompt1))
+            if len(blog_plan["image_prompts"]) > 1:
+                img_prompt2 = blog_plan["image_prompts"][1]["prompt"]
+            else:
+                img_prompt2 = None
+        else:
+            img_prompt1 = img_prompt2 = None
+        # 5. Await scraping
+        scraped_data = await scraping_task
+        # 6. When both blog plan and scraping are ready, start main content generation and second image
+        if blog_plan and scraped_data:
+            # Prepare final_data as before
+            final_data = {
+                'search_info': {
+                    'keyword': keyword_item.text,
+                    'country': keyword_request.country.lower(),
+                    'language': keyword_request.language.lower(),
+                    'timestamp': datetime.now().isoformat(),
+                    'total_results_found': len(scraped_data),
+                    'scheduledDate': keyword_item.scheduledDate,
+                    'scheduledTime': keyword_item.scheduledTime,
+                    'user_email': keyword_request.user_email
+                },
+                'scraped_content': scraped_data,
+                'blog_plan': blog_plan,
+                'video_info': self.scraping_service.scraper.video_link_scraper(keyword_item.text),
+                'subcategories': subcategories,
+                'category_names': category_names
+            }
+            # Start second image generation
+            if img_prompt2:
+                image2_task = asyncio.create_task(self.content_generator.generate_image(img_prompt2))
+            # Start main content generation
+            content_task = asyncio.create_task(self.content_generator.generate_content_with_plan(final_data, "biography"))
+            # Await all
+            content_result, image1_url, image2_url = await asyncio.gather(
+                content_task,
+                image1_task if image1_task else asyncio.sleep(0),
+                image2_task if image2_task else asyncio.sleep(0)
+            )
+            # Save to DB if content_result is successful
+            if content_result and content_result.get('success'):
+                # (category/tag matching logic as before)
+                selected_category_name = content_result.get('selected_category_name')
+                category_ids = []
+                if selected_category_name:
+                    for cat in categories:
+                        if cat['name'].strip().lower() == selected_category_name.strip().lower():
+                            category_ids = [str(cat['_id'])]
+                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
+                            break
+                if re.match(r'\[Reference in [a-z]+\]', content_result['title']):
+                    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', content_result['content'], re.IGNORECASE | re.DOTALL)
+                    if h1_match:
+                        title = h1_match.group(1).strip()
+                        print(f"Extracted title: {title}")
+                        # Now you can use the title variable
+                else:
+                    print("No h1 tag found")
+
+                if not category_ids:
+                    category_ids = await self.match_content_categories(content_result['content'], categories)
+                tags = await self.get_all_tags()
+                tag_ids = await self.match_content_tags(content_result['content'], tags)
+                await self.save_generated_content(
+                    keyword=keyword_item.text,
+                    content=content_result['content'],
+                    word_count=content_result['word_count'],
+                    language=keyword_request.language.lower(),
+                    category_ids=category_ids,
+                    tag_ids=tag_ids,
+                    image_urls=[u for u in [image1_url, image2_url] if u],
+                    metadata={},
+                    scheduled_date=keyword_item.scheduledDate,
+                    scheduled_time=keyword_item.scheduledTime,
+                    user_email=keyword_request.user_email,
+                    content_type="biography"
+                )
+        else:
+            print(f"Skipping content generation for '{keyword_item.text}' due to missing blog plan or scraped data.")
 
     async def scrape_and_generate_content(
         self,
@@ -129,10 +217,9 @@ class ContentService:
         keyword: str,
         country: str,
         language: str,
-        min_length: int,
-        user_email: str,
         scheduled_date: str,
         scheduled_time: str,
+        user_email: str,
         content_type: str,
         selected_category_id: str = None,
         selected_tag_id: str = None,
@@ -151,11 +238,11 @@ class ContentService:
             # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
             def scrape_with_retry():
-                scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
+                scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
                 if not scraped_data:
                     print(f"🔄 Scraping failed for '{keyword}', retrying in 5 seconds...")
                     time.sleep(5)
-                    scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
+                    scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
                 return scraped_data
             scraped_data = scrape_with_retry()
             if not scraped_data:
@@ -169,7 +256,6 @@ class ContentService:
                     'language': language,
                     'timestamp': datetime.now().isoformat(),
                     'total_results_found': len(scraped_data),
-                    'min_length': min_length,
                     'scheduledDate': scheduled_date,
                     'scheduledTime': scheduled_time,
                     'user_email': user_email

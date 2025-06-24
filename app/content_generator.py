@@ -253,13 +253,11 @@ SOURCE MATERIAL:
             search_info = scraped_data.get("search_info", {})
             keyword = search_info.get("keyword", "")
             language = search_info.get("language", "en")
-            min_length = search_info.get("min_length", 1500)
             
             if not keyword:
                 return {'success': False, 'message': "No keyword found"}
 
             print(f"🎯 Generating {content_type} content for: {keyword} in {language}")
-            print(f"📏 Target length: {min_length} words")
 
             # First, generate an attention-catching title
             title_prompt = f"""Create a highly creative and engaging title for a {content_type} about {keyword} in {language}. 
@@ -400,7 +398,7 @@ CONTENT: {content}
             print(f"📝 Initial generation: {word_count} words")
             
             # Calculate minimum acceptable word count (75% of target)
-            min_acceptable_words = int(min_length * 0.75)
+            min_acceptable_words = int(1500 * 0.75)
             print(f"📏 Minimum acceptable words: {min_acceptable_words}")
             
             # If content is still too short, expand it
@@ -442,7 +440,7 @@ Additional source material for reference:
                 print(f"📝 Expanded to: {word_count} words")
 
             # Add word count status to metadata
-            word_count_status = "optimal" if word_count >= min_length else "acceptable" if word_count >= min_acceptable_words else "below_minimum"
+            word_count_status = "optimal" if word_count >= 1500 else "acceptable" if word_count >= min_acceptable_words else "below_minimum"
             print(f"📊 Word count status: {word_count_status} ({word_count} words)")
 
             # --- Await image generation results ---

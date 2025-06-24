@@ -223,6 +223,12 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
         print("🔄 Restarting scheduler...")
         scheduler.resume_scheduler()
     
+    # Fetch categories and tags once
+    categories = await content_service.get_all_categories()
+    subcategories = [cat for cat in categories if cat.get('parentId')]
+    category_names = [cat['name'] for cat in categories]
+    tags = await content_service.get_all_tags()
+    
     response = await content_service.process_keywords(keyword_request)
     
     # Schedule background tasks for content generation
@@ -245,7 +251,8 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
                 keyword_request.user_email,  # Pass email separately
                 keyword_item.scheduledDate,
                 keyword_item.scheduledTime,
-                content_type  # Pass the determined content type
+                content_type,  # Pass the determined content type
+                None, None, categories, subcategories, category_names, tags
             )
     
     return response
