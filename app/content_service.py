@@ -128,6 +128,8 @@ class ContentService:
             print("All categories fetched from target DB:", categories)
             subcategories = [cat for cat in categories if cat.get('parentId')]
             print("Filtered subcategories:", subcategories)
+            # Extract category names for GPT prompt
+            category_names = [cat['name'] for cat in categories]
             # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
             scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
@@ -152,7 +154,8 @@ class ContentService:
                 'scraped_content': scraped_data,
                 'blog_plan': await self.content_generator.generate_blog_plan(keyword, language),
                 'video_info': self.scraping_service.scraper.video_link_scraper(keyword),
-                'subcategories': subcategories  # Pass subcategories to content generator
+                'subcategories': subcategories,  # Pass subcategories to content generator
+                'category_names': category_names  # Pass category names to content generator
             }
             # Debug print to confirm subcategories being sent
             print("Subcategories being sent to content generator:", subcategories)
@@ -164,13 +167,21 @@ class ContentService:
             
             if result['success']:
                 print(f"✅ Generated content in {language}: {result['word_count']} words")
-                # Use category from blog plan if available (now always from service logic)
+                # If GPT selected a category, use its ID
+                selected_category_name = result.get('selected_category_name')
                 category_ids = []
-                if selected_category_id:
-                    category_ids = [selected_category_id]
-                else:
-                    categories = await self.get_all_categories()
-                    category_ids = await self.match_content_categories(result['content'], categories)
+                if selected_category_name:
+                    for cat in categories:
+                        if cat['name'].strip().lower() == selected_category_name.strip().lower():
+                            category_ids = [str(cat['_id'])]
+                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
+                            break
+                # Fallback to previous logic if not found
+                if not category_ids:
+                    if selected_category_id:
+                        category_ids = [selected_category_id]
+                    else:
+                        category_ids = await self.match_content_categories(result['content'], categories)
                 # Handle tags
                 tag_ids = []
                 if selected_tag_id:
