@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import re
 import random
 import os
+import threading
 
 class WebContentScraper:
     def __init__(self):
@@ -259,7 +260,7 @@ class WebContentScraper:
             'content_length': len(content)
         }
     
-    def scrape_url(self, url, timeout=None):
+    def scrape_url(self, url, min_length=100, timeout=None):
         """
         Scrape content from a single URL
         """
@@ -268,14 +269,16 @@ class WebContentScraper:
             timeout = timeout or self.default_timeout
             response = self.session.get(url, timeout=timeout)
             response.raise_for_status()
-            
             # Check content type
             content_type = response.headers.get('content-type', '').lower()
             if 'html' not in content_type:
                 return None
-            
-            return self.extract_main_content(response.content, url)
-            
+            result = self.extract_main_content(response.content, url)
+            if result and result['content_length'] >= min_length:
+                return result
+            else:
+                print(f"❌ Content too short ({result['content_length'] if result else 0} < {min_length})")
+                return None
         except requests.Timeout:
             print(f"Timeout while scraping {url}")
             return None
@@ -286,36 +289,48 @@ class WebContentScraper:
             print(f"Error scraping {url}: {e}")
             return None
     
-    def scrape_multiple_urls(self, urls, target_count=5, delay=2):
+    def scrape_multiple_urls(self, urls, target_count=5, delay=2, min_length=100):
         """
-        Scrape multiple URLs with delay between requests
-        Ensures exactly target_count successful scrapes by using backup URLs
+        Scrape multiple URLs in parallel (up to target_count at a time).
+        Ensures exactly target_count successful scrapes by using backup URLs.
         """
         results = []
         processed_urls = set()
-        
-        for i, url in enumerate(urls):
-            if len(results) >= target_count:
-                break
-                
-            if url in processed_urls:
-                continue
-                
-            processed_urls.add(url)
-            print(f"Processing {len(results)+1}/{target_count}: {url}")
-            
-            result = self.scrape_url(url)
-            if result and result['content_length'] > 100:
-                results.append(result)
-                print(f"✅ Successfully scraped ({len(results)}/{target_count})")
+        threads = []
+        results_lock = threading.Lock()
+
+        def scrape_and_collect(url):
+            result = self.scrape_url(url, min_length=min_length)
+            if result:
+                with results_lock:
+                    if len(results) < target_count:
+                        results.append(result)
+                        print(f"✅ Successfully scraped ({len(results)}/{target_count})")
             else:
                 print(f"❌ Failed to scrape or insufficient content")
-            
-            # Add delay between requests to be respectful
-            if i < len(urls) - 1 and len(results) < target_count:
-                time.sleep(delay)
-        
-        return results
+
+        for url in urls:
+            if len(results) >= target_count:
+                break
+            if url in processed_urls:
+                continue
+            processed_urls.add(url)
+            print(f"Processing {len(results)+1}/{target_count}: {url}")
+            t = threading.Thread(target=scrape_and_collect, args=(url,))
+            t.start()
+            threads.append(t)
+            # Only start up to target_count threads at once
+            while len([th for th in threads if th.is_alive()]) >= target_count:
+                time.sleep(0.1)
+            time.sleep(delay)  # Optional: small delay to avoid hammering servers
+
+        # Wait for all threads to finish
+        for t in threads:
+            t.join()
+            if len(results) >= target_count:
+                break
+
+        return results[:target_count]
     
     def video_link_scraper(self, keyword):
         """

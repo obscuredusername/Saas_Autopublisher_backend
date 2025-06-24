@@ -749,6 +749,7 @@ Additional source material for reference:
             # Parse the response as JSON
             try:
                 blog_plan = json.loads(response.choices[0].message.content.strip())
+                print(f"\n📝 Generated Blog Plan for '{keyword}' in '{language}':\n{json.dumps(blog_plan, indent=2)}\n")
                 return blog_plan
             except json.JSONDecodeError as e:
                 print(f"❌ Error parsing blog plan JSON: {str(e)}")

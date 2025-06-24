@@ -15,6 +15,8 @@ import os
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
+import threading
+import time
 
 class ContentService:
     def __init__(self, db):
@@ -40,42 +42,37 @@ class ContentService:
         
         return f"{slug}"
 
+    def run_scrape_and_generate_content(self, *args, **kwargs):
+        # Sync wrapper for async scrape_and_generate_content
+        asyncio.run(self.scrape_and_generate_content(*args, **kwargs))
+
     async def process_keywords(self, keyword_request: KeywordRequest) -> ScrapingResponse:
         try:
             tasks = []
             all_unique_links = []
-
-            for keyword_item in keyword_request.keywords:
+            threads = []
+            # WARNING: Spawning 300 threads is not recommended for production. Use a thread pool or queue for better resource management.
+            for idx, keyword_item in enumerate(keyword_request.keywords):
                 print(f"🔍 Processing keyword: '{keyword_item.text}'")
-                
                 search_results = self.scraping_service.scraper.search_duckduckgo(
                     keyword=keyword_item.text.strip(),
                     country_code=keyword_request.country.lower(),
                     language=keyword_request.language.lower(),
                     max_results=25
                 )
-                
                 if search_results:
                     unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
-                    
-                    # Use minLength from frontend if provided, otherwise fallback to 7500
                     min_length = getattr(keyword_item, 'minLength', None)
                     if min_length is None:
                         min_length = 7500
-                    
                     if unique_links:
-                        # Immediately scrape and generate content for this keyword only
-                        await self.scrape_and_generate_content(
-                            unique_links,
-                            keyword_item.text,
-                            keyword_request.country.lower(),
-                            keyword_request.language.lower(),
-                            min_length,
-                            keyword_request.user_email,  # Pass email separately
-                            keyword_item.scheduledDate,
-                            keyword_item.scheduledTime,
-                            "biography"  # or determine content_type as needed
+                        thread = threading.Thread(
+                            target=self.run_scrape_and_generate_content,
+                            args=(unique_links, keyword_item.text, keyword_request.country.lower(), keyword_request.language.lower(), min_length, keyword_request.user_email, keyword_item.scheduledDate, keyword_item.scheduledTime, "biography")
                         )
+                        thread.start()
+                        threads.append(thread)
+                        print(f"🧵 Started thread for keyword '{keyword_item.text}'")
                         tasks.append({
                             "keyword": keyword_item.text,
                             "scheduledDate": keyword_item.scheduledDate,
@@ -84,16 +81,18 @@ class ContentService:
                             "links_found": len(unique_links),
                             "status": "scheduled"
                         })
+                        if idx < len(keyword_request.keywords) - 1:
+                            print("⏳ Waiting 10 seconds before starting next thread...")
+                            time.sleep(10)
                     else:
                         tasks.append({
                             "keyword": keyword_item.text,
                             "links_found": 0,
                             "status": "no_links_found"
                         })
-                # Add a 10 second delay between keywords
-                print("⏳ Waiting 10 seconds before next keyword...")
-                await asyncio.sleep(10)
-            
+            # Optionally, join threads here if you want to wait for all to finish
+            # for thread in threads:
+            #     thread.join()
             return ScrapingResponse(
                 success=True,
                 message=f"Found {len(all_unique_links)} unique links across {len(tasks)} keywords",
@@ -103,7 +102,6 @@ class ContentService:
                 status="processing",
                 unique_links=list(set(all_unique_links))
             )
-                
         except Exception as e:
             print(f"Error in process_keywords: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
@@ -132,7 +130,7 @@ class ContentService:
             category_names = [cat['name'] for cat in categories]
             # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
-            scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
+            scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
             
             if not scraped_data:
                 print(f"❌ No content scraped for '{keyword}'")
