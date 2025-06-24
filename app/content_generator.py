@@ -22,6 +22,7 @@ from PIL import Image
 load_dotenv()
 
 class ContentGenerator:
+    image_semaphore = asyncio.Semaphore(2)  # Limit to 2 concurrent image generations
     def __init__(self, api_key: str = None):
         """
         Initialize the content generator with OpenAI client only
@@ -509,20 +510,19 @@ Additional source material for reference:
         Generate an image using BFL.ml and upload to IMGBB
         This replaces both your existing functions
         """
-        try:
-            print(f"🎨 Generating image: {prompt}")
-            image_url = await self.generate_image_bfl(prompt, size)
-            
-            if image_url:
-                print(f"✅ Image generation successful")
-                return image_url
-            else:
-                print("❌ Image generation failed")
+        async with self.image_semaphore:
+            try:
+                print(f"🎨 Generating image: {prompt}")
+                image_url = await self.generate_image_bfl(prompt, size)
+                if image_url:
+                    print(f"✅ Image generation successful")
+                    return image_url
+                else:
+                    print("❌ Image generation failed")
+                    return None
+            except Exception as e:
+                print(f"❌ Error in image generation: {str(e)}")
                 return None
-                
-        except Exception as e:
-            print(f"❌ Error in image generation: {str(e)}")
-            return None
 
     async def generate_image_bfl(self, prompt: str, size: str = "1024x1024") -> Optional[str]:
         """
@@ -787,7 +787,9 @@ Additional source material for reference:
             image_tasks = []
             # Take only the first two image prompts
             for img_prompt in blog_plan["image_prompts"][:2]:
-                task = asyncio.create_task(self.generate_image(img_prompt["prompt"]))
+                # Add non-vulgarity requirement to image prompt
+                safe_img_prompt = img_prompt["prompt"] + " (The image must not be vulgar, explicit, or offensive in any way.)"
+                task = asyncio.create_task(self.generate_image(safe_img_prompt))
                 image_tasks.append(task)
             
             # Process scraped content for RAG
@@ -867,6 +869,7 @@ REQUIREMENTS:
 - Add relevant quotes and citations from sources
 - Target word count: 1500-2000 words
 - Use the exact title provided in the blog plan
+- Include hyperlinks to sources in the content, and ensure that each hyperlink is unique and not repeated.
 
 STRUCTURED CONTENT REQUIREMENTS:
 1. For biographies/people:

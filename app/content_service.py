@@ -50,29 +50,46 @@ class ContentService:
         try:
             tasks = []
             all_unique_links = []
-            threads = []
-            # WARNING: Spawning 300 threads is not recommended for production. Use a thread pool or queue for better resource management.
+            # Fetch categories once before starting tasks
+            categories = await self.get_all_categories()
+            subcategories = [cat for cat in categories if cat.get('parentId')]
+            category_names = [cat['name'] for cat in categories]
+            # Use asyncio tasks instead of threads
+            keyword_tasks = []
             for idx, keyword_item in enumerate(keyword_request.keywords):
                 print(f"🔍 Processing keyword: '{keyword_item.text}'")
-                search_results = self.scraping_service.scraper.search_duckduckgo(
-                    keyword=keyword_item.text.strip(),
-                    country_code=keyword_request.country.lower(),
-                    language=keyword_request.language.lower(),
-                    max_results=25
-                )
+                def search_with_retry():
+                    search_results = self.scraping_service.scraper.search_duckduckgo(
+                        keyword=keyword_item.text.strip(),
+                        country_code=keyword_request.country.lower(),
+                        language=keyword_request.language.lower(),
+                        max_results=25
+                    )
+                    if not search_results:
+                        print(f"🔄 No search results for '{keyword_item.text}', retrying in 5 seconds...")
+                        time.sleep(5)
+                        search_results = self.scraping_service.scraper.search_duckduckgo(
+                            keyword=keyword_item.text.strip(),
+                            country_code=keyword_request.country.lower(),
+                            language=keyword_request.language.lower(),
+                            max_results=25
+                        )
+                    return search_results
+                search_results = search_with_retry()
                 if search_results:
                     unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
                     min_length = getattr(keyword_item, 'minLength', None)
                     if min_length is None:
                         min_length = 7500
                     if unique_links:
-                        thread = threading.Thread(
-                            target=self.run_scrape_and_generate_content,
-                            args=(unique_links, keyword_item.text, keyword_request.country.lower(), keyword_request.language.lower(), min_length, keyword_request.user_email, keyword_item.scheduledDate, keyword_item.scheduledTime, "biography")
+                        # Schedule as asyncio task
+                        task = asyncio.create_task(
+                            self.scrape_and_generate_content(
+                                unique_links, keyword_item.text, keyword_request.country.lower(), keyword_request.language.lower(), min_length, keyword_request.user_email, keyword_item.scheduledDate, keyword_item.scheduledTime, "biography", None, None, categories, subcategories, category_names
+                            )
                         )
-                        thread.start()
-                        threads.append(thread)
-                        print(f"🧵 Started thread for keyword '{keyword_item.text}'")
+                        keyword_tasks.append(task)
+                        print(f"🧵 Scheduled task for keyword '{keyword_item.text}'")
                         tasks.append({
                             "keyword": keyword_item.text,
                             "scheduledDate": keyword_item.scheduledDate,
@@ -82,17 +99,17 @@ class ContentService:
                             "status": "scheduled"
                         })
                         if idx < len(keyword_request.keywords) - 1:
-                            print("⏳ Waiting 10 seconds before starting next thread...")
-                            time.sleep(10)
+                            print("⏳ Waiting 10 seconds before starting next task...")
+                            await asyncio.sleep(10)
                     else:
                         tasks.append({
                             "keyword": keyword_item.text,
                             "links_found": 0,
                             "status": "no_links_found"
                         })
-            # Optionally, join threads here if you want to wait for all to finish
-            # for thread in threads:
-            #     thread.join()
+            # Wait for all keyword tasks to finish
+            if keyword_tasks:
+                await asyncio.gather(*keyword_tasks)
             return ScrapingResponse(
                 success=True,
                 message=f"Found {len(all_unique_links)} unique links across {len(tasks)} keywords",
@@ -118,24 +135,32 @@ class ContentService:
         scheduled_time: str,
         content_type: str,
         selected_category_id: str = None,
-        selected_tag_id: str = None
+        selected_tag_id: str = None,
+        categories: List[Dict[str, Any]] = None,
+        subcategories: List[Dict[str, Any]] = None,
+        category_names: List[str] = None
     ) -> None:
         try:
-            # Fetch all categories from target DB and filter subcategories
-            categories = await self.get_all_categories()
-            print("All categories fetched from target DB:", categories)
-            subcategories = [cat for cat in categories if cat.get('parentId')]
-            print("Filtered subcategories:", subcategories)
-            # Extract category names for GPT prompt
-            category_names = [cat['name'] for cat in categories]
+            # Use passed categories, subcategories, and category_names
+            if categories is None:
+                categories = []
+            if subcategories is None:
+                subcategories = [cat for cat in categories if cat.get('parentId')]
+            if category_names is None:
+                category_names = [cat['name'] for cat in categories]
             # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
-            scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
-            
+            def scrape_with_retry():
+                scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
+                if not scraped_data:
+                    print(f"🔄 Scraping failed for '{keyword}', retrying in 5 seconds...")
+                    time.sleep(5)
+                    scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5, min_length=min_length)
+                return scraped_data
+            scraped_data = scrape_with_retry()
             if not scraped_data:
-                print(f"❌ No content scraped for '{keyword}'")
+                print(f"❌ No content scraped for '{keyword}' after retry")
                 return
-            
             # Restore real content generation with blog plan
             final_data = {
                 'search_info': {
@@ -157,11 +182,25 @@ class ContentService:
             }
             # Debug print to confirm subcategories being sent
             print("Subcategories being sent to content generator:", subcategories)
+            def generate_with_retry():
+                try:
+                    return asyncio.run(self.content_generator.generate_content_with_plan(final_data, content_type))
+                except Exception as e:
+                    print(f"🔄 Content generation failed for '{keyword}', retrying in 5 seconds... Error: {e}")
+                    time.sleep(5)
+                    try:
+                        return asyncio.run(self.content_generator.generate_content_with_plan(final_data, content_type))
+                    except Exception as e2:
+                        print(f"❌ Content generation failed for '{keyword}' after retry. Error: {e2}")
+                        return None
             result = await self.content_generator.generate_content_with_plan(final_data, content_type)
-            
-            if not result.get('success'):
-                print(f"❌ Content generation failed for '{keyword}': {result.get('message')}")
-                return
+            if not result or not result.get('success'):
+                print(f"🔄 Content generation failed for '{keyword}', retrying in 5 seconds...")
+                time.sleep(5)
+                result = await self.content_generator.generate_content_with_plan(final_data, content_type)
+                if not result or not result.get('success'):
+                    print(f"❌ Content generation failed for '{keyword}' after retry.")
+                    return
             
             if result['success']:
                 print(f"✅ Generated content in {language}: {result['word_count']} words")
