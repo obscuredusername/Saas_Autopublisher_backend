@@ -4,6 +4,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson.objectid import ObjectId
 from typing import List, Dict, Any
 import re
+from pymongo.errors import DuplicateKeyError
+from pymongo import UpdateOne
 
 class SchedulerService:
     def __init__(self, source_uri: str, source_db: str, source_collection: str,
@@ -98,11 +100,11 @@ class SchedulerService:
     async def check_scheduled_content(self):
         """Check for content that needs to be published (date/time in the past and status 'pending')"""
         try:
-            current_time = datetime.now()
+            current_time = datetime.utcnow()
             current_date = current_time.strftime("%Y-%m-%d")
             current_time_str = current_time.strftime("%H:%M")
 
-            print(f"🔍 Checking for content at: {current_date} {current_time_str}")
+            print(f"🔍 Checking for content at (UTC): {current_date} {current_time_str}")
 
             published_count = 0
 
@@ -149,20 +151,49 @@ class SchedulerService:
             print("Content:", str(content_to_publish)[:200] + ("..." if len(str(content_to_publish)) > 200 else ""))
             print("=" * 80)
 
-            # Insert to target collection
-            result = await self.target_db[self.target_collection].insert_one(content_to_publish)
-            if result.inserted_id:
-                print(f"✅ Content saved with ID: {result.inserted_id}")
+            duplicate = False
+            try:
+                result = await self.target_db[self.target_collection].insert_one(content_to_publish)
+                if result.inserted_id:
+                    print(f"✅ Content saved with ID: {result.inserted_id}")
+            except Exception as e:
+                # Check for duplicate key error (slug)
+                if hasattr(e, 'details') and e.details and e.details.get('code') == 11000:
+                    print(f"⚠️ Duplicate slug detected. Marking as published without inserting.")
+                    duplicate = True
+                else:
+                    print(f"❌ Error publishing content: {e}")
+                    # Still update status below
 
-            # Update status in source collection
+            # Update status in source collection regardless of duplicate or other errors
+            scheduled_date = content.get("scheduled_date")
+            scheduled_time = content.get("scheduled_time")
+            use_scheduled = False
+            if scheduled_date and scheduled_time:
+                try:
+                    scheduled_dt = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
+                    use_scheduled = True
+                except Exception as e:
+                    print(f"⚠️ Error parsing scheduled_date/time: {e}, using current UTC time.")
+                    scheduled_dt = datetime.utcnow()
+            else:
+                scheduled_dt = datetime.utcnow()
+
+            # Debug prints for createdAt, utcnow, and scheduled fields
+            print(f"[SCHEDULER DEBUG] scheduled_date: {scheduled_date}")
+            print(f"[SCHEDULER DEBUG] scheduled_time: {scheduled_time}")
+            print(f"[SCHEDULER DEBUG] createdAt/updatedAt to be set: {scheduled_dt}")
+            print(f"[SCHEDULER DEBUG] utcnow: {datetime.utcnow()}")
+
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},
                 {"$set": {
                     "status": "published",
-                    "published_at": datetime.now()
+                    "createdAt": scheduled_dt,
+                    "updatedAt": scheduled_dt
                 }}
             )
-            print(f"✅ Published content.")
+            print(f"✅ Published content (status updated in source DB).{' (Duplicate slug)' if duplicate else ''} {'(Used scheduled date/time)' if use_scheduled else '(Used UTC now)'}")
 
         except Exception as e:
             print(f"❌ Error publishing content: {str(e)}")

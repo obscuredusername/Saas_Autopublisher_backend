@@ -491,22 +491,10 @@ Additional source material for reference:
             return {
                 'success': True,
                 'message': f'Generated {content_type} content: {word_count} words in {language}',
-                'word_count': word_count,
-                'language': language,
                 'title': title,
-                'slug': slug,
-                'image_urls': [url for url in [image_url1, image_url2] if url],
                 'content': generated_content,
-                'metadata': {
-                    'sources_used': len(relevant_chunks),
-                    'total_sources': len(scraped_data.get("scraped_content", [])),
-                    'generation_attempts': attempts + 1,
-                    'target_length': min_length,
-                    'actual_length': word_count,
-                    'min_acceptable_length': min_acceptable_words,
-                    'word_count_status': word_count_status,
-                    'references': references
-                }
+                'image_urls': [url for url in [image_url1, image_url2] if url],
+                'word_count': word_count
             }
             
         except Exception as e:
@@ -957,7 +945,7 @@ Return the complete blog post with proper HTML formatting, including all tables 
             print(f"📝 Generated content: {word_count} words")
             
             # Verify word count is within target range
-            if word_count < 1500:
+            if word_count < 7500:
                 print(f"⚠️ Warning: Word count ({word_count}) is below target range (1500-2000)")
                 # If content is too short, try to expand it
                 expansion_prompt = f"""Expand the following content to at least 1500 words by adding more details and context.
@@ -1049,21 +1037,10 @@ Return the complete blog post with proper HTML formatting, including all tables 
             return {
                 'success': True,
                 'message': f'Generated blog content for: {keyword}',
-                'content_for_db': {
-                    'title': blog_plan["title"],
-                    'content': generated_content,
-                    'slug': slug,
-                    'category': blog_plan["category"],
-                    'image_urls': image_urls,
-                    'metadata': metadata
-                },
                 'title': blog_plan["title"],
-                'category': blog_plan["category"],
-                'slug': slug,
                 'content': generated_content,
-                'word_count': word_count,
                 'image_urls': image_urls,
-                'metadata': metadata
+                'word_count': word_count
             }
             
         except Exception as e:
@@ -1072,6 +1049,26 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 'success': False,
                 'message': f'Error generating content: {str(e)}'
             }
+
+    async def generate_dummy_content(self, title="Dummy Title", content_type="biography") -> dict:
+        """
+        Dummy content generator for testing. Returns static data in the new minimal format.
+        """
+        dummy_content = f"""
+        <article>
+            <h2>{title}</h2>
+            <p>This is dummy generated content for testing purposes only.</p>
+            <img src=\"https://placehold.co/600x400\" alt=\"Dummy Image\" />
+        </article>
+        """
+        return {
+            "success": True,
+            "message": f"Dummy {content_type} content generated.",
+            "title": title,
+            "content": dummy_content,
+            "image_urls": ["https://placehold.co/600x400"],
+            "word_count": 12
+        }
 
 def test_bfl_image_generation(api_key: str, prompt: str, width: int = 1024, height: int = 1024):
     """

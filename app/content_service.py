@@ -14,6 +14,7 @@ import re
 import os
 import json
 from motor.motor_asyncio import AsyncIOMotorClient
+import asyncio
 
 class ContentService:
     def __init__(self, db):
@@ -57,13 +58,29 @@ class ContentService:
                 if search_results:
                     unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
                     
+                    # Use minLength from frontend if provided, otherwise fallback to 7500
+                    min_length = getattr(keyword_item, 'minLength', None)
+                    if min_length is None:
+                        min_length = 7500
+                    
                     if unique_links:
-                        all_unique_links.extend(unique_links)
+                        # Immediately scrape and generate content for this keyword only
+                        await self.scrape_and_generate_content(
+                            unique_links,
+                            keyword_item.text,
+                            keyword_request.country.lower(),
+                            keyword_request.language.lower(),
+                            min_length,
+                            keyword_request.user_email,  # Pass email separately
+                            keyword_item.scheduledDate,
+                            keyword_item.scheduledTime,
+                            "biography"  # or determine content_type as needed
+                        )
                         tasks.append({
                             "keyword": keyword_item.text,
                             "scheduledDate": keyword_item.scheduledDate,
                             "scheduledTime": keyword_item.scheduledTime,
-                            "minLength": keyword_item.minLength,
+                            "minLength": min_length,
                             "links_found": len(unique_links),
                             "status": "scheduled"
                         })
@@ -73,6 +90,9 @@ class ContentService:
                             "links_found": 0,
                             "status": "no_links_found"
                         })
+                # Add a 10 second delay between keywords
+                print("⏳ Waiting 10 seconds before next keyword...")
+                await asyncio.sleep(10)
             
             return ScrapingResponse(
                 success=True,
@@ -103,24 +123,11 @@ class ContentService:
         selected_tag_id: str = None
     ) -> None:
         try:
-            # Generate blog plan first
-            print(f"📝 Generating blog plan for: {keyword}")
-            blog_plan = await self.content_generator.generate_blog_plan(keyword, language)
-            if not blog_plan:
-                print(f"❌ Failed to generate blog plan for '{keyword}'")
-                return
-                
-            print(f"✅ Blog plan generated successfully")
-            print(json.dumps(blog_plan, indent=2))
-            
-            # Get video information
-            print(f"🎥 Searching for video content for: {keyword}")
-            video_info = self.scraping_service.scraper.video_link_scraper(keyword)
-            if video_info:
-                print(f"✅ Found video: {video_info['title']}")
-            else:
-                print("❌ No video found")
-            
+            # Fetch all categories from target DB and filter subcategories
+            categories = await self.get_all_categories()
+            print("All categories fetched from target DB:", categories)
+            subcategories = [cat for cat in categories if cat.get('parentId')]
+            print("Filtered subcategories:", subcategories)
             # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
             scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
@@ -128,7 +135,8 @@ class ContentService:
             if not scraped_data:
                 print(f"❌ No content scraped for '{keyword}'")
                 return
-                
+            
+            # Restore real content generation with blog plan
             final_data = {
                 'search_info': {
                     'keyword': keyword,
@@ -142,11 +150,12 @@ class ContentService:
                     'user_email': user_email
                 },
                 'scraped_content': scraped_data,
-                'blog_plan': blog_plan,  # Pass the blog plan to content generation
-                'video_info': video_info  # Pass video information to content generation
+                'blog_plan': await self.content_generator.generate_blog_plan(keyword, language),
+                'video_info': self.scraping_service.scraper.video_link_scraper(keyword),
+                'subcategories': subcategories  # Pass subcategories to content generator
             }
-            
-            # Generate content using the generator with blog plan
+            # Debug print to confirm subcategories being sent
+            print("Subcategories being sent to content generator:", subcategories)
             result = await self.content_generator.generate_content_with_plan(final_data, content_type)
             
             if not result.get('success'):
@@ -155,28 +164,13 @@ class ContentService:
             
             if result['success']:
                 print(f"✅ Generated content in {language}: {result['word_count']} words")
-                print(f"📝 Blog Plan Used:")
-                print(json.dumps(result.get('metadata', {}).get('headings', []), indent=2))
-                
-                # Use category from blog plan if available
+                # Use category from blog plan if available (now always from service logic)
                 category_ids = []
                 if selected_category_id:
                     category_ids = [selected_category_id]
                 else:
-                    blog_plan_category = result.get('category')
-                    if blog_plan_category:
-                        # Try to find matching category
-                        categories = await self.get_all_categories()
-                        for cat in categories:
-                            if cat['name'].lower() == blog_plan_category.lower():
-                                category_ids = [str(cat['_id'])]
-                                break
-                    
-                    # If no category found from blog plan, try auto-matching
-                    if not category_ids:
-                        categories = await self.get_all_categories()
-                        category_ids = await self.match_content_categories(result['content'], categories)
-                
+                    categories = await self.get_all_categories()
+                    category_ids = await self.match_content_categories(result['content'], categories)
                 # Handle tags
                 tag_ids = []
                 if selected_tag_id:
@@ -184,7 +178,6 @@ class ContentService:
                 else:
                     tags = await self.get_all_tags()
                     tag_ids = await self.match_content_tags(result['content'], tags)
-                
                 print(f"Content details:\n"
                       f"Keyword: {keyword}\n"
                       f"Word count: {result['word_count']}\n"
@@ -192,11 +185,9 @@ class ContentService:
                       f"Categories: {category_ids}\n"
                       f"Tags: {tag_ids}\n"
                       f"Image URLs: {result.get('image_urls', [])}\n"
-                      f"Blog Plan: {json.dumps(result.get('metadata', {}).get('headings', []), indent=2)}\n"
                       f"Scheduled: {scheduled_date} {scheduled_time}\n"
                       f"User: {user_email}\n"
                       f"Type: {content_type}")
-                
                 # Save the content with proper payload
                 success = await self.save_generated_content(
                     keyword=keyword,
@@ -206,7 +197,7 @@ class ContentService:
                     category_ids=category_ids,
                     tag_ids=tag_ids,
                     image_urls=result.get('image_urls', []),
-                    metadata=result.get('metadata', {}),
+                    metadata={},  # No metadata from generator
                     scheduled_date=scheduled_date,
                     scheduled_time=scheduled_time,
                     user_email=user_email,
@@ -361,35 +352,25 @@ class ContentService:
                 category_ids = []
             if tag_ids is None:
                 tag_ids = []
-            
             # If no categories were matched, try to get default category
             if not category_ids:
                 default_category = await self.get_default_category(content_type)
                 if default_category:
                     category_ids = [default_category]
-            
             # Convert string IDs to ObjectId, handling empty lists
             category_object_ids = [ObjectId(cat_id) for cat_id in category_ids if cat_id]
             tag_object_ids = [ObjectId(tag_id) for tag_id in tag_ids if tag_id]
-            
-            # Get the content_for_db from metadata if available
-            content_for_db = metadata.get('content_for_db', {})
-            
             # Extract title from content if available
-            title = content_for_db.get('title')
+            title = None
+            title_match = re.search(r'<h2>(.*?)</h2>', content)
+            if title_match:
+                title = title_match.group(1)
             if not title:
-                # Try to extract from content
-                title_match = re.search(r'<h2>(.*?)</h2>', content)
-                if title_match:
-                    title = title_match.group(1)
-                else:
-                    title = keyword  # Fallback to keyword
-            
-            # Use content_for_db values if available, otherwise use provided values
+                title = keyword  # Fallback to keyword
             content_doc = {
                 "title": title,  # Use extracted title
-                "content": content_for_db.get('content', content),
-                "slug": content_for_db.get('slug', self.generate_slug(title)),  # Use slug from title
+                "content": content,
+                "slug": self.generate_slug(title),  # Use slug from title
                 "excerpt": title,  # Use title as excerpt
                 "status": "pending",  # Set initial status as pending
                 "categoryIds": category_object_ids,
@@ -416,12 +397,10 @@ class ContentService:
                 "user_email": user_email,  # Add user email
                 "content_type": content_type,  # Add content type
                 "image_urls": image_urls,  # Add image URLs
-                "metadata": content_for_db.get('metadata', metadata)  # Use metadata from content_for_db if available
+                "metadata": metadata  # No generator metadata
             }
-            
             result = await self.db.generated_content.insert_one(content_doc)
             return bool(result.inserted_id)
-            
         except Exception as e:
             print(f"Error saving generated content: {str(e)}")
             return False
