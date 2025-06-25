@@ -17,6 +17,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 import threading
 import time
+import sys
 
 class ContentService:
     def __init__(self, db):
@@ -655,6 +656,22 @@ class ContentService:
                     image2_task if image2_task else asyncio.sleep(0)
                 )
                 
+                # Check for image generation failure
+                if (img_prompt1 and not image1_url) or (img_prompt2 and not image2_url):
+                    error_msg = f"Image generation failed for '{keyword}'"
+                    print(f"❌ {error_msg}")
+                    self.unprocessed_keywords.append({
+                        'keyword': keyword,
+                        'error': error_msg,
+                        'stage': 'image_generation'
+                    })
+                    # --- PAUSE SCRIPT IF CRITICAL ERROR ---
+                    critical_keywords = ['cannot generate', 'balance', 'token', 'insufficient']
+                    if any(kw in error_msg.lower() for kw in critical_keywords):
+                        print(f"🛑 Critical error detected ('{error_msg}'). Pausing script.")
+                        sys.exit(1)
+                    return
+
                 # Save to DB if content_result is successful
                 if content_result and content_result.get('success'):
                     print(f"✅ Content generation successful for '{keyword}' ({content_result['word_count']} words)")
@@ -714,6 +731,11 @@ class ContentService:
                         'error': error_msg,
                         'stage': 'content_generation'
                     })
+                    # --- PAUSE SCRIPT IF CRITICAL ERROR ---
+                    critical_keywords = ['cannot generate', 'balance', 'token', 'insufficient']
+                    if any(kw in error_msg.lower() for kw in critical_keywords):
+                        print(f"🛑 Critical error detected ('{error_msg}'). Pausing script.")
+                        sys.exit(1)
             else:
                 error_msg = f"Skipping content generation for '{keyword}' due to missing blog plan or scraped data"
                 print(f"❌ {error_msg}")
@@ -731,6 +753,11 @@ class ContentService:
                 'error': error_msg,
                 'stage': 'pipeline'
             })
+            # --- PAUSE SCRIPT IF CRITICAL ERROR ---
+            critical_keywords = ['cannot generate', 'balance', 'token', 'insufficient']
+            if any(kw in error_msg.lower() for kw in critical_keywords):
+                print(f"🛑 Critical error detected ('{error_msg}'). Pausing script.")
+                sys.exit(1)
 
     async def scrape_and_generate_content(
         self,

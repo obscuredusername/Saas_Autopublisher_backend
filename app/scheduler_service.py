@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson.objectid import ObjectId
@@ -37,7 +37,7 @@ class SchedulerService:
     
     async def get_categories(self) -> List[Dict[str, Any]]:
         """Fetch and cache categories from target database"""
-        current_time = datetime.now()
+        current_time = datetime.now(timezone.utc)
         
         # Return cached categories if they're less than 1 hour old
         if self.categories_cache and self.categories_cache_time:
@@ -100,7 +100,7 @@ class SchedulerService:
     async def check_scheduled_content(self):
         """Check for content that needs to be published (date/time in the past and status 'pending')"""
         try:
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
             current_date = current_time.strftime("%Y-%m-%d")
             current_time_str = current_time.strftime("%H:%M")
 
@@ -175,9 +175,9 @@ class SchedulerService:
                     use_scheduled = True
                 except Exception as e:
                     print(f"⚠️ Error parsing scheduled_date/time: {e}, using current UTC time.")
-                    scheduled_dt = datetime.utcnow()
+                    scheduled_dt = datetime.now(timezone.utc)
             else:
-                scheduled_dt = datetime.utcnow()
+                scheduled_dt = datetime.now(timezone.utc)
 
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},

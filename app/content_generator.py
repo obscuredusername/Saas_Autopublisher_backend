@@ -53,21 +53,7 @@ class ContentGenerator:
                 6. Add transitional phrases and explanatory content
                 7. Ensure content flows naturally and reads like original writing""",
                 
-                "user": """Create a comprehensive biography about {keyword} in {language}. Use the source material below as reference but COMPLETELY REWRITE everything in your own words. The content must be at least 1500 words.
-
-REQUIREMENTS:
-- Language: {language}
-- Minimum length: 1500 words
-- Paraphrase all information (no direct copying)
-- Use proper HTML structure as shown below
-- Include detailed analysis and context
-- Expand on key events with historical background
-- Add multiple sections covering different aspects of life
-
-HTML Structure Required:
-<article class="biography">
-    <h1 class="person-name">{keyword}</h1>
-    
+                "user": """Create a comprehensive biography about {keyword} in {language}. Use the source material below as reference but COMPLETELY REWRITE everything in your own words. The content must be at least 1500 words.\n\nREQUIREMENTS:\n- Language: {language}\n- Minimum length: 1500 words\n- Paraphrase all information (no direct copying)\n- Use proper HTML structure as shown below\n- Include detailed analysis and context\n- Expand on key events with historical background\n- Add multiple sections covering different aspects of life\n- IMPORTANT: When referencing a source, always embed the hyperlink contextually within the paragraph using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Do NOT list sources at the end or outside the main text. Hyperlinks must be part of the narrative, not a separate source list.\n\nHTML Structure Required:\n<article class=\"biography\">\n    <h1 class=\"person-name\">{keyword}</h1>\n    
     <div class="bio-meta">
         <p class="bio-intro">
             [Comprehensive introduction paragraph - 100+ words]
@@ -173,33 +159,15 @@ Remember: Write everything in {language} and ensure the content is at least 1500
             },
             
             "how_to": {
-                "system": """You are an expert content writer specializing in comprehensive how-to guides. Create detailed, practical guides that are:
-                - MINIMUM 1500 words long
-                - Written in the specified language
-                - Thoroughly paraphrased from source material
-                - Structured with proper HTML formatting
-                - Rich in practical examples and tips
-                - Easy to follow and actionable""",
+                "system": """You are an expert content writer specializing in comprehensive how-to guides. Create detailed, practical guides that are:\n                - MINIMUM 1500 words long\n                - Written in the specified language\n                - Thoroughly paraphrased from source material\n                - Structured with proper HTML formatting\n                - Rich in practical examples and tips\n                - Easy to follow and actionable""",
                 
-                "user": """Create a comprehensive how-to guide about {keyword} in {language}. Use the source material as reference but completely rewrite in your own words. Minimum 1500 words.
-
-Requirements: Same HTML structure principles as biography but adapted for how-to content.
-
-SOURCE MATERIAL:
-{scraped_data}"""
+                "user": """Create a comprehensive how-to guide about {keyword} in {language}. Use the source material as reference but completely rewrite in your own words. Minimum 1500 words.\n\nRequirements: Same HTML structure principles as biography but adapted for how-to content.\n- IMPORTANT: When referencing a source, always embed the hyperlink contextually within the paragraph using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Do NOT list sources at the end or outside the main text. Hyperlinks must be part of the narrative, not a separate source list.\n\nSOURCE MATERIAL:\n{scraped_data}"""
             },
             
             "company": {
-                "system": """You are a business analyst specializing in comprehensive company profiles. Create detailed company analyses that are:
-                - MINIMUM 1500 words long
-                - Written in the specified language
-                - Thoroughly paraphrased from source material
-                - Rich in business insights and analysis""",
+                "system": """You are a business analyst specializing in comprehensive company profiles. Create detailed company analyses that are:\n                - MINIMUM 1500 words long\n                - Written in the specified language\n                - Thoroughly paraphrased from source material\n                - Rich in business insights and analysis""",
                 
-                "user": """Create a comprehensive company profile about {keyword} in {language}. Use the source material as reference but completely rewrite in your own words. Minimum 1500 words.
-
-SOURCE MATERIAL:
-{scraped_data}"""
+                "user": """Create a comprehensive company profile about {keyword} in {language}. Use the source material as reference but completely rewrite in your own words. Minimum 1500 words.\n\n- IMPORTANT: When referencing a source, always embed the hyperlink contextually within the paragraph using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Do NOT list sources at the end or outside the main text. Hyperlinks must be part of the narrative, not a separate source list.\n\nSOURCE MATERIAL:\n{scraped_data}"""
             }
         }
 
@@ -897,7 +865,7 @@ REQUIREMENTS:
 - Add relevant quotes and citations from sources
 - Target word count: 1500-2000 words
 - Use the exact title provided in the blog plan
-- Include hyperlinks to sources in the content, and ensure that each hyperlink is unique and not repeated.
+- Include anchor tags to sources contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in achor tags
 
 STRUCTURED CONTENT REQUIREMENTS:
 1. For biographies/people:
@@ -948,6 +916,7 @@ STRUCTURED CONTENT REQUIREMENTS:
 
 4. For all content types:
    - Include at least 2 data tables with relevant information
+   - Include Anchor tags \
    - Use bullet points for lists and key points
    - Format important statistics in tables
    - Use blockquotes for important quotes
