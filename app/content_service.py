@@ -28,6 +28,9 @@ class ContentService:
         # Initialize target DB connection using global variables from routes
         from app.routes import TARGET_DB_URI, TARGET_DB
         self.target_db = AsyncIOMotorClient(TARGET_DB_URI)[TARGET_DB]
+        
+        # Track unprocessed keywords
+        self.unprocessed_keywords = []
 
     def generate_slug(self, title: str) -> str:
         """Generate a URL-friendly slug from the title"""
@@ -48,12 +51,19 @@ class ContentService:
 
     async def process_keywords(self, keyword_request: KeywordRequest) -> ScrapingResponse:
         try:
+            # Reset unprocessed keywords list for new batch
+            self.unprocessed_keywords = []
+            
             tasks = []
             all_unique_links = []
             categories = await self.get_all_categories()
             subcategories = [cat for cat in categories if cat.get('parentId')]
             category_names = [cat['name'] for cat in categories]
+            
+            print(f"🚀 Starting processing of {len(keyword_request.keywords)} keywords")
+            
             for idx, keyword_item in enumerate(keyword_request.keywords):
+                print(f"📝 Processing keyword {idx + 1}/{len(keyword_request.keywords)}: '{keyword_item.text}'")
                 tasks.append(asyncio.create_task(
                     self.orchestrate_keyword_pipeline(
                         keyword_item,
@@ -66,8 +76,22 @@ class ContentService:
                 if idx < len(keyword_request.keywords) - 1:
                     print("⏳ Waiting 10 seconds before starting next task...")
                     await asyncio.sleep(10)
+            
             if tasks:
-                await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Log processing summary
+            print(f"📊 Processing Summary:")
+            print(f"   Total keywords: {len(keyword_request.keywords)}")
+            print(f"   Unprocessed keywords: {len(self.unprocessed_keywords)}")
+            
+            if self.unprocessed_keywords:
+                print(f"❌ Unprocessed keywords: {[kw['keyword'] for kw in self.unprocessed_keywords]}")
+                print(f"🔄 Starting automatic retry of unprocessed keywords...")
+                
+                # Automatically retry unprocessed keywords
+                await self.auto_retry_unprocessed_keywords(keyword_request, categories, subcategories, category_names)
+            
             return ScrapingResponse(
                 success=True,
                 message=f"Started processing {len(keyword_request.keywords)} keywords.",
@@ -81,70 +105,327 @@ class ContentService:
             print(f"Error in process_keywords: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-    async def orchestrate_keyword_pipeline(
-        self,
-        keyword_item,
-        keyword_request,
-        categories,
-        subcategories,
-        category_names
-    ):
-        loop = asyncio.get_running_loop()
-        # 1. Get links (blocking)
-        def search_with_retry():
-            search_results = self.scraping_service.scraper.search_duckduckgo(
-                keyword=keyword_item.text.strip(),
-                country_code=keyword_request.country.lower(),
-                language=keyword_request.language.lower(),
-                max_results=25
-            )
-            if not search_results:
-                print(f"🔄 No search results for '{keyword_item.text}', retrying in 5 seconds...")
-                time.sleep(5)
-                search_results = self.scraping_service.scraper.search_duckduckgo(
-                    keyword=keyword_item.text.strip(),
+    async def auto_retry_unprocessed_keywords(self, keyword_request: KeywordRequest, categories, subcategories, category_names):
+        """Automatically retry unprocessed keywords with different strategies"""
+        try:
+            print(f"🔄 Auto-retry: Processing {len(self.unprocessed_keywords)} failed keywords")
+            
+            # Create a copy of unprocessed keywords for retry
+            retry_keywords = self.unprocessed_keywords.copy()
+            self.unprocessed_keywords = []  # Reset for retry results
+            
+            for idx, failed_keyword in enumerate(retry_keywords):
+                keyword = failed_keyword['keyword']
+                stage = failed_keyword['stage']
+                error = failed_keyword['error']
+                
+                print(f"🔄 Auto-retry {idx + 1}/{len(retry_keywords)}: '{keyword}' (Failed at: {stage})")
+                
+                # Different retry strategies based on failure stage
+                if stage in ['search', 'link_extraction']:
+                    # For search/link failures, try with different search parameters
+                    success = await self.retry_with_different_search_params(
+                        keyword, keyword_request, categories, subcategories, category_names
+                    )
+                elif stage in ['blog_plan', 'content_generation']:
+                    # For content generation failures, try with simplified approach
+                    success = await self.retry_with_simplified_generation(
+                        keyword, keyword_request, categories, subcategories, category_names
+                    )
+                elif stage in ['scraping', 'data_preparation']:
+                    # For scraping failures, try with fewer links
+                    success = await self.retry_with_fewer_links(
+                        keyword, keyword_request, categories, subcategories, category_names
+                    )
+                else:
+                    # For other failures, try standard retry
+                    success = await self.retry_with_standard_approach(
+                        keyword, keyword_request, categories, subcategories, category_names
+                    )
+                
+                if success:
+                    print(f"✅ Auto-retry successful for '{keyword}'")
+                else:
+                    print(f"❌ Auto-retry failed for '{keyword}'")
+                    # Store in database for manual review
+                    await self.store_single_unprocessed_keyword(failed_keyword, keyword_request)
+            
+            # Final summary
+            successful_retries = len(retry_keywords) - len(self.unprocessed_keywords)
+            print(f"📊 Auto-retry Summary:")
+            print(f"   Total retried: {len(retry_keywords)}")
+            print(f"   Successful retries: {successful_retries}")
+            print(f"   Still failed: {len(self.unprocessed_keywords)}")
+            
+        except Exception as e:
+            print(f"❌ Error in auto-retry process: {str(e)}")
+
+    async def retry_with_different_search_params(self, keyword, keyword_request, categories, subcategories, category_names):
+        """Retry with different search parameters"""
+        try:
+            print(f"   🔍 Retrying '{keyword}' with different search parameters...")
+            
+            # Try with different search terms
+            search_variations = [
+                keyword,
+                f"{keyword} biography",
+                f"{keyword} profile",
+                f"{keyword} information"
+            ]
+            
+            for search_term in search_variations:
+                print(f"   🔍 Trying search term: '{search_term}'")
+                
+                loop = asyncio.get_running_loop()
+                search_results = await loop.run_in_executor(None, lambda: 
+                    self.scraping_service.scraper.search_duckduckgo(
+                        keyword=search_term,
+                        country_code=keyword_request.country.lower(),
+                        language=keyword_request.language.lower(),
+                        max_results=15  # Reduced for retry
+                    )
+                )
+                
+                if search_results:
+                    unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=5)  # Reduced count
+                    if unique_links:
+                        print(f"   ✅ Found links with search term: '{search_term}'")
+                        return await self.process_with_links(keyword, unique_links, keyword_request, categories, subcategories, category_names)
+                
+                await asyncio.sleep(2)  # Brief pause between attempts
+            
+            return False
+            
+        except Exception as e:
+            print(f"   ❌ Error in search retry: {str(e)}")
+            return False
+
+    async def retry_with_simplified_generation(self, keyword, keyword_request, categories, subcategories, category_names):
+        """Retry with simplified content generation"""
+        try:
+            print(f"   🤖 Retrying '{keyword}' with simplified generation...")
+            
+            # Try to get at least some search results
+            loop = asyncio.get_running_loop()
+            search_results = await loop.run_in_executor(None, lambda: 
+                self.scraping_service.scraper.search_duckduckgo(
+                    keyword=keyword,
                     country_code=keyword_request.country.lower(),
                     language=keyword_request.language.lower(),
-                    max_results=25
+                    max_results=10
                 )
-            return search_results
-        search_results = await loop.run_in_executor(None, search_with_retry)
-        if not search_results:
-            print(f"No search results for '{keyword_item.text}' after retry.")
-            return
-        unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
-        if not unique_links:
-            print(f"No unique links found for '{keyword_item.text}'")
-            return
-        # 2. Start blog plan generation (async)
-        blog_plan_task = asyncio.create_task(
-            self.content_generator.generate_blog_plan(keyword_item.text, keyword_request.language)
-        )
-        # 3. Start scraping links (blocking, in executor)
-        def scrape_links():
-            return self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
-        scraping_task = loop.run_in_executor(None, scrape_links)
-        # 4. As soon as blog plan is ready, start first image generation (async)
-        blog_plan = await blog_plan_task
-        image1_task = None
-        image2_task = None
-        if blog_plan and "image_prompts" in blog_plan and blog_plan["image_prompts"]:
-            img_prompt1 = blog_plan["image_prompts"][0]["prompt"]
-            image1_task = asyncio.create_task(self.content_generator.generate_image(img_prompt1))
-            if len(blog_plan["image_prompts"]) > 1:
-                img_prompt2 = blog_plan["image_prompts"][1]["prompt"]
-            else:
-                img_prompt2 = None
-        else:
-            img_prompt1 = img_prompt2 = None
-        # 5. Await scraping
-        scraped_data = await scraping_task
-        # 6. When both blog plan and scraping are ready, start main content generation and second image
-        if blog_plan and scraped_data:
-            # Prepare final_data as before
+            )
+            
+            if not search_results:
+                return False
+            
+            unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=3)  # Very few links
+            if not unique_links:
+                return False
+            
+            # Try simplified content generation
+            return await self.process_with_simplified_generation(keyword, unique_links, keyword_request, categories, subcategories, category_names)
+            
+        except Exception as e:
+            print(f"   ❌ Error in simplified generation retry: {str(e)}")
+            return False
+
+    async def retry_with_fewer_links(self, keyword, keyword_request, categories, subcategories, category_names):
+        """Retry with fewer links to scrape"""
+        try:
+            print(f"   🕷️ Retrying '{keyword}' with fewer links...")
+            
+            loop = asyncio.get_running_loop()
+            search_results = await loop.run_in_executor(None, lambda: 
+                self.scraping_service.scraper.search_duckduckgo(
+                    keyword=keyword,
+                    country_code=keyword_request.country.lower(),
+                    language=keyword_request.language.lower(),
+                    max_results=10
+                )
+            )
+            
+            if not search_results:
+                return False
+            
+            unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=2)  # Very few links
+            if not unique_links:
+                return False
+            
+            return await self.process_with_links(keyword, unique_links, keyword_request, categories, subcategories, category_names)
+            
+        except Exception as e:
+            print(f"   ❌ Error in fewer links retry: {str(e)}")
+            return False
+
+    async def retry_with_standard_approach(self, keyword, keyword_request, categories, subcategories, category_names):
+        """Standard retry approach"""
+        try:
+            print(f"   🔄 Retrying '{keyword}' with standard approach...")
+            
+            # Create a keyword item for retry
+            from app.models import KeywordItem
+            keyword_item = KeywordItem(
+                text=keyword,
+                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
+                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                minLength=0
+            )
+            
+            # Try the standard pipeline
+            await self.orchestrate_keyword_pipeline(
+                keyword_item,
+                keyword_request,
+                categories,
+                subcategories,
+                category_names
+            )
+            
+            # Check if it succeeded (no new unprocessed keywords for this keyword)
+            return len([kw for kw in self.unprocessed_keywords if kw['keyword'] == keyword]) == 0
+            
+        except Exception as e:
+            print(f"   ❌ Error in standard retry: {str(e)}")
+            return False
+
+    async def process_with_links(self, keyword, unique_links, keyword_request, categories, subcategories, category_names):
+        """Process keyword with given links"""
+        try:
+            # Create keyword item
+            from app.models import KeywordItem
+            keyword_item = KeywordItem(
+                text=keyword,
+                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
+                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                minLength=0
+            )
+            
+            # Use the existing pipeline logic but with provided links
+            return await self.orchestrate_keyword_pipeline_with_links(
+                keyword_item, unique_links, keyword_request, categories, subcategories, category_names
+            )
+            
+        except Exception as e:
+            print(f"   ❌ Error processing with links: {str(e)}")
+            return False
+
+    async def process_with_simplified_generation(self, keyword, unique_links, keyword_request, categories, subcategories, category_names):
+        """Process with simplified content generation"""
+        try:
+            # Scrape minimal content
+            loop = asyncio.get_running_loop()
+            scraped_data = await loop.run_in_executor(None, lambda: 
+                self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=2)
+            )
+            
+            if not scraped_data:
+                return False
+            
+            # Generate simple blog plan
+            blog_plan = await self.content_generator.generate_blog_plan(keyword, keyword_request.language)
+            if not blog_plan:
+                return False
+            
+            # Prepare data for simplified generation
             final_data = {
                 'search_info': {
-                    'keyword': keyword_item.text,
+                    'keyword': keyword,
+                    'country': keyword_request.country.lower(),
+                    'language': keyword_request.language.lower(),
+                    'timestamp': datetime.now().isoformat(),
+                    'total_results_found': len(scraped_data),
+                    'scheduledDate': keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
+                    'scheduledTime': keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                    'user_email': keyword_request.user_email
+                },
+                'scraped_content': scraped_data,
+                'blog_plan': blog_plan,
+                'video_info': None,  # Skip video for simplified approach
+                'subcategories': subcategories,
+                'category_names': category_names
+            }
+            
+            # Generate content with simplified approach
+            content_result = await self.content_generator.generate_content_with_plan(final_data, "biography")
+            
+            if content_result and content_result.get('success'):
+                # Save to database
+                selected_category_name = content_result.get('selected_category_name')
+                category_ids = []
+                print(f"🎯 Processing selected category: {selected_category_name}")
+                
+                if selected_category_name:
+                    for cat in categories:
+                        if cat['name'].strip().lower() == selected_category_name.strip().lower():
+                            category_ids = [str(cat['_id'])]
+                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
+                            break
+                        else:
+                            print(f"❌ Selected category '{selected_category_name}' not found in available categories")
+                
+                if not category_ids:
+                    print(f"🔄 No GPT category selected, using content matching...")
+                    category_ids = await self.match_content_categories(content_result['content'], categories)
+                
+                if re.match(r'\[Reference in [a-z]+\]', content_result['title']):
+                    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', content_result['content'], re.IGNORECASE | re.DOTALL)
+                    if h1_match:
+                        title = h1_match.group(1).strip()
+                        print(f"Extracted title: {title}")
+                else:
+                    print("No h1 tag found")
+                
+                tags = await self.get_all_tags()
+                tag_ids = await self.match_content_tags(content_result['content'], tags)
+                
+                save_success = await self.save_generated_content(
+                    keyword=keyword,
+                    content=content_result['content'],
+                    word_count=content_result['word_count'],
+                    language=keyword_request.language.lower(),
+                    category_ids=category_ids,
+                    tag_ids=tag_ids,
+                    image_urls=content_result.get('image_urls', []),
+                    metadata={},
+                    scheduled_date=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
+                    scheduled_time=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                    user_email=keyword_request.user_email,
+                    content_type="biography"
+                )
+                
+                return save_success
+            
+            return False
+            
+        except Exception as e:
+            print(f"   ❌ Error in simplified generation: {str(e)}")
+            return False
+
+    async def orchestrate_keyword_pipeline_with_links(self, keyword_item, unique_links, keyword_request, categories, subcategories, category_names):
+        """Orchestrate pipeline with pre-provided links"""
+        keyword = keyword_item.text.strip()
+        print(f"   🎯 Processing '{keyword}' with provided links...")
+        
+        try:
+            # Skip search step since we have links
+            print(f"   📋 Generating blog plan for '{keyword}'...")
+            blog_plan = await self.content_generator.generate_blog_plan(keyword, keyword_request.language)
+            if not blog_plan:
+                return False
+            
+            # Scrape the provided links
+            loop = asyncio.get_running_loop()
+            scraped_data = await loop.run_in_executor(None, lambda: 
+                self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=len(unique_links))
+            )
+            
+            if not scraped_data:
+                return False
+            
+            # Continue with content generation
+            final_data = {
+                'search_info': {
+                    'keyword': keyword,
                     'country': keyword_request.country.lower(),
                     'language': keyword_request.language.lower(),
                     'timestamp': datetime.now().isoformat(),
@@ -155,61 +436,301 @@ class ContentService:
                 },
                 'scraped_content': scraped_data,
                 'blog_plan': blog_plan,
-                'video_info': self.scraping_service.scraper.video_link_scraper(keyword_item.text),
+                'video_info': None,  # Skip video for retry
                 'subcategories': subcategories,
                 'category_names': category_names
             }
-            # Start second image generation
-            if img_prompt2:
-                image2_task = asyncio.create_task(self.content_generator.generate_image(img_prompt2))
-            # Start main content generation
-            content_task = asyncio.create_task(self.content_generator.generate_content_with_plan(final_data, "biography"))
-            # Await all
-            content_result, image1_url, image2_url = await asyncio.gather(
-                content_task,
-                image1_task if image1_task else asyncio.sleep(0),
-                image2_task if image2_task else asyncio.sleep(0)
-            )
-            # Save to DB if content_result is successful
+            
+            content_result = await self.content_generator.generate_content_with_plan(final_data, "biography")
+            
             if content_result and content_result.get('success'):
-                # (category/tag matching logic as before)
+                # Save to database
                 selected_category_name = content_result.get('selected_category_name')
                 category_ids = []
                 if selected_category_name:
                     for cat in categories:
                         if cat['name'].strip().lower() == selected_category_name.strip().lower():
                             category_ids = [str(cat['_id'])]
-                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
                             break
-                if re.match(r'\[Reference in [a-z]+\]', content_result['title']):
-                    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', content_result['content'], re.IGNORECASE | re.DOTALL)
-                    if h1_match:
-                        title = h1_match.group(1).strip()
-                        print(f"Extracted title: {title}")
-                        # Now you can use the title variable
-                else:
-                    print("No h1 tag found")
-
+                
                 if not category_ids:
                     category_ids = await self.match_content_categories(content_result['content'], categories)
+                
                 tags = await self.get_all_tags()
                 tag_ids = await self.match_content_tags(content_result['content'], tags)
-                await self.save_generated_content(
-                    keyword=keyword_item.text,
+                
+                save_success = await self.save_generated_content(
+                    keyword=keyword,
                     content=content_result['content'],
                     word_count=content_result['word_count'],
                     language=keyword_request.language.lower(),
                     category_ids=category_ids,
                     tag_ids=tag_ids,
-                    image_urls=[u for u in [image1_url, image2_url] if u],
+                    image_urls=content_result.get('image_urls', []),
                     metadata={},
                     scheduled_date=keyword_item.scheduledDate,
                     scheduled_time=keyword_item.scheduledTime,
                     user_email=keyword_request.user_email,
                     content_type="biography"
                 )
-        else:
-            print(f"Skipping content generation for '{keyword_item.text}' due to missing blog plan or scraped data.")
+                
+                return save_success
+            
+            return False
+            
+        except Exception as e:
+            print(f"   ❌ Error in pipeline with links: {str(e)}")
+            return False
+
+    async def store_single_unprocessed_keyword(self, failed_keyword, keyword_request):
+        """Store a single unprocessed keyword in database"""
+        try:
+            unprocessed_doc = {
+                "keyword": failed_keyword['keyword'],
+                "error": failed_keyword['error'],
+                "stage": failed_keyword['stage'],
+                "country": keyword_request.country.lower(),
+                "language": keyword_request.language.lower(),
+                "user_email": keyword_request.user_email,
+                "created_at": datetime.now(),
+                "status": "failed",
+                "retry_count": 1  # Mark as already retried
+            }
+            
+            result = await self.db.unprocessed_keywords.insert_one(unprocessed_doc)
+            print(f"💾 Stored unprocessed keyword '{failed_keyword['keyword']}' in database (ID: {result.inserted_id})")
+            
+        except Exception as e:
+            print(f"❌ Error storing unprocessed keyword: {str(e)}")
+
+    async def orchestrate_keyword_pipeline(
+        self,
+        keyword_item,
+        keyword_request,
+        categories,
+        subcategories,
+        category_names
+    ):
+        keyword = keyword_item.text.strip()
+        print(f"🎯 Starting pipeline for keyword: '{keyword}'")
+        
+        # Debug: Print category information
+        print(f"📋 Category Debug Info:")
+        print(f"   - Total categories: {len(categories)}")
+        print(f"   - Category names: {category_names}")
+        print(f"   - Subcategories: {len(subcategories)}")
+        
+        try:
+            loop = asyncio.get_running_loop()
+            
+            # 1. Get links (blocking)
+            print(f"🔍 Searching for links for '{keyword}'...")
+            def search_with_retry():
+                search_results = self.scraping_service.scraper.search_duckduckgo(
+                    keyword=keyword,
+                    country_code=keyword_request.country.lower(),
+                    language=keyword_request.language.lower(),
+                    max_results=25
+                )
+                if not search_results:
+                    print(f"🔄 No search results for '{keyword}', retrying in 5 seconds...")
+                    time.sleep(5)
+                    search_results = self.scraping_service.scraper.search_duckduckgo(
+                        keyword=keyword,
+                        country_code=keyword_request.country.lower(),
+                        language=keyword_request.language.lower(),
+                        max_results=25
+                    )
+                return search_results
+            
+            search_results = await loop.run_in_executor(None, search_with_retry)
+            if not search_results:
+                error_msg = f"No search results for '{keyword}' after retry"
+                print(f"❌ {error_msg}")
+                self.unprocessed_keywords.append({
+                    'keyword': keyword,
+                    'error': error_msg,
+                    'stage': 'search'
+                })
+                return
+            
+            unique_links = self.scraping_service.scraper.get_unique_links(search_results, count=10)
+            if not unique_links:
+                error_msg = f"No unique links found for '{keyword}'"
+                print(f"❌ {error_msg}")
+                self.unprocessed_keywords.append({
+                    'keyword': keyword,
+                    'error': error_msg,
+                    'stage': 'link_extraction'
+                })
+                return
+            
+            print(f"✅ Found {len(unique_links)} unique links for '{keyword}'")
+            
+            # 2. Start blog plan generation (async)
+            print(f"📋 Generating blog plan for '{keyword}'...")
+            blog_plan_task = asyncio.create_task(
+                self.content_generator.generate_blog_plan(keyword, keyword_request.language)
+            )
+            
+            # 3. Start scraping links (blocking, in executor)
+            print(f"🕷️ Starting content scraping for '{keyword}'...")
+            def scrape_links():
+                return self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
+            scraping_task = loop.run_in_executor(None, scrape_links)
+            
+            # 4. As soon as blog plan is ready, start first image generation (async)
+            blog_plan = await blog_plan_task
+            if not blog_plan:
+                error_msg = f"Failed to generate blog plan for '{keyword}'"
+                print(f"❌ {error_msg}")
+                self.unprocessed_keywords.append({
+                    'keyword': keyword,
+                    'error': error_msg,
+                    'stage': 'blog_plan'
+                })
+                return
+            
+            print(f"✅ Blog plan generated for '{keyword}'")
+            
+            image1_task = None
+            image2_task = None
+            if blog_plan and "image_prompts" in blog_plan and blog_plan["image_prompts"]:
+                img_prompt1 = blog_plan["image_prompts"][0]["prompt"]
+                image1_task = asyncio.create_task(self.content_generator.generate_image(img_prompt1))
+                if len(blog_plan["image_prompts"]) > 1:
+                    img_prompt2 = blog_plan["image_prompts"][1]["prompt"]
+                else:
+                    img_prompt2 = None
+            else:
+                img_prompt1 = img_prompt2 = None
+            
+            # 5. Await scraping
+            scraped_data = await scraping_task
+            if not scraped_data:
+                error_msg = f"Failed to scrape content for '{keyword}'"
+                print(f"❌ {error_msg}")
+                self.unprocessed_keywords.append({
+                    'keyword': keyword,
+                    'error': error_msg,
+                    'stage': 'scraping'
+                })
+                return
+            
+            print(f"✅ Scraped {len(scraped_data)} content items for '{keyword}'")
+            
+            # 6. When both blog plan and scraping are ready, start main content generation and second image
+            if blog_plan and scraped_data:
+                # Prepare final_data as before
+                final_data = {
+                    'search_info': {
+                        'keyword': keyword,
+                        'country': keyword_request.country.lower(),
+                        'language': keyword_request.language.lower(),
+                        'timestamp': datetime.now().isoformat(),
+                        'total_results_found': len(scraped_data),
+                        'scheduledDate': keyword_item.scheduledDate,
+                        'scheduledTime': keyword_item.scheduledTime,
+                        'user_email': keyword_request.user_email
+                    },
+                    'scraped_content': scraped_data,
+                    'blog_plan': blog_plan,
+                    'video_info': self.scraping_service.scraper.video_link_scraper(keyword),
+                    'subcategories': subcategories,
+                    'category_names': category_names
+                }
+                
+                # Start second image generation
+                if img_prompt2:
+                    image2_task = asyncio.create_task(self.content_generator.generate_image(img_prompt2))
+                
+                # Start main content generation
+                print(f"🤖 Generating content for '{keyword}'...")
+                content_task = asyncio.create_task(self.content_generator.generate_content_with_plan(final_data, "biography"))
+                
+                # Await all
+                content_result, image1_url, image2_url = await asyncio.gather(
+                    content_task,
+                    image1_task if image1_task else asyncio.sleep(0),
+                    image2_task if image2_task else asyncio.sleep(0)
+                )
+                
+                # Save to DB if content_result is successful
+                if content_result and content_result.get('success'):
+                    print(f"✅ Content generation successful for '{keyword}' ({content_result['word_count']} words)")
+                    
+                    # (category/tag matching logic as before)
+                    selected_category_name = content_result.get('selected_category_name')
+                    category_ids = []
+                    print(f"🎯 Processing selected category: {selected_category_name}")
+                    
+                    if selected_category_name:
+                        for cat in categories:
+                            if cat['name'].strip().lower() == selected_category_name.strip().lower():
+                                category_ids = [str(cat['_id'])]
+                                print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
+                                break
+                        else:
+                            print(f"❌ Selected category '{selected_category_name}' not found in available categories")
+                    
+                    if not category_ids:
+                        print(f"🔄 No GPT category selected, using content matching...")
+                        category_ids = await self.match_content_categories(content_result['content'], categories)
+                    tags = await self.get_all_tags()
+                    tag_ids = await self.match_content_tags(content_result['content'], tags)
+                    
+                    # Save to database with detailed logging
+                    print(f"💾 Saving content to database for '{keyword}'...")
+                    save_success = await self.save_generated_content(
+                        keyword=keyword,
+                        content=content_result['content'],
+                        word_count=content_result['word_count'],
+                        language=keyword_request.language.lower(),
+                        category_ids=category_ids,
+                        tag_ids=tag_ids,
+                        image_urls=[u for u in [image1_url, image2_url] if u],
+                        metadata={},
+                        scheduled_date=keyword_item.scheduledDate,
+                        scheduled_time=keyword_item.scheduledTime,
+                        user_email=keyword_request.user_email,
+                        content_type="biography"
+                    )
+                    
+                    if save_success:
+                        print(f"✅ Content for '{keyword}' successfully saved to database")
+                    else:
+                        error_msg = f"Failed to save content to database for '{keyword}'"
+                        print(f"❌ {error_msg}")
+                        self.unprocessed_keywords.append({
+                            'keyword': keyword,
+                            'error': error_msg,
+                            'stage': 'database_save'
+                        })
+                else:
+                    error_msg = f"Content generation failed for '{keyword}': {content_result.get('message', 'Unknown error') if content_result else 'No result'}"
+                    print(f"❌ {error_msg}")
+                    self.unprocessed_keywords.append({
+                        'keyword': keyword,
+                        'error': error_msg,
+                        'stage': 'content_generation'
+                    })
+            else:
+                error_msg = f"Skipping content generation for '{keyword}' due to missing blog plan or scraped data"
+                print(f"❌ {error_msg}")
+                self.unprocessed_keywords.append({
+                    'keyword': keyword,
+                    'error': error_msg,
+                    'stage': 'data_preparation'
+                })
+                
+        except Exception as e:
+            error_msg = f"Unexpected error processing '{keyword}': {str(e)}"
+            print(f"❌ {error_msg}")
+            self.unprocessed_keywords.append({
+                'keyword': keyword,
+                'error': error_msg,
+                'stage': 'pipeline'
+            })
 
     async def scrape_and_generate_content(
         self,
@@ -263,11 +784,9 @@ class ContentService:
                 'scraped_content': scraped_data,
                 'blog_plan': await self.content_generator.generate_blog_plan(keyword, language),
                 'video_info': self.scraping_service.scraper.video_link_scraper(keyword),
-                'subcategories': subcategories,  # Pass subcategories to content generator
-                'category_names': category_names  # Pass category names to content generator
+                'subcategories': subcategories,
+                'category_names': category_names
             }
-            # Debug print to confirm subcategories being sent
-            print("Subcategories being sent to content generator:", subcategories)
             def generate_with_retry():
                 try:
                     return asyncio.run(self.content_generator.generate_content_with_plan(final_data, content_type))
@@ -351,14 +870,25 @@ class ContentService:
     async def get_all_categories(self) -> List[Dict[str, Any]]:
         """Fetch all categories from the target database"""
         try:
+            print(f"🔍 Fetching categories from target DB...")
+            print(f"   - Target DB URI: {os.getenv('TARGET_DB_URI')}")
+            print(f"   - Target DB Name: {os.getenv('TARGET_DB', 'CRM')}")
+            
             categories = await self.target_db.categories.find({}, {
                 '_id': 1,
                 'name': 1,
                 'description': 1
             }).to_list(length=None)
+            
+            print(f"   - Found {len(categories)} categories")
+            if categories:
+                print(f"   - Category names: {[cat.get('name', 'N/A') for cat in categories]}")
+            else:
+                print(f"   - No categories found in target database")
+            
             return categories
         except Exception as e:
-            print(f"Error fetching categories from target DB: {str(e)}")
+            print(f"❌ Error fetching categories from target DB: {str(e)}")
             return []
 
     async def get_all_tags(self) -> List[Dict[str, Any]]:
@@ -481,30 +1011,60 @@ class ContentService:
     ) -> bool:
         """Save generated content to the database"""
         try:
+            print(f"💾 Starting database save operation for keyword: '{keyword}'")
+            print(f"   📊 Content details:")
+            print(f"      - Word count: {word_count}")
+            print(f"      - Language: {language}")
+            print(f"      - Categories: {category_ids}")
+            print(f"      - Tags: {tag_ids}")
+            print(f"      - Image URLs: {len(image_urls)} images")
+            print(f"      - Scheduled: {scheduled_date} {scheduled_time}")
+            print(f"      - User: {user_email}")
+            print(f"      - Content type: {content_type}")
+            
             # Ensure category_ids and tag_ids are lists
             if category_ids is None:
                 category_ids = []
             if tag_ids is None:
                 tag_ids = []
+            
             # If no categories were matched, try to get default category
             if not category_ids:
+                print(f"   ⚠️ No categories matched, trying to get default category...")
                 default_category = await self.get_default_category(content_type)
                 if default_category:
                     category_ids = [default_category]
+                    print(f"   ✅ Using default category: {default_category}")
+                else:
+                    print(f"   ⚠️ No default category found for content type: {content_type}")
+            
             # Convert string IDs to ObjectId, handling empty lists
             category_object_ids = [ObjectId(cat_id) for cat_id in category_ids if cat_id]
             tag_object_ids = [ObjectId(tag_id) for tag_id in tag_ids if tag_id]
+            
+            print(f"   🔄 Converted IDs:")
+            print(f"      - Category ObjectIds: {category_object_ids}")
+            print(f"      - Tag ObjectIds: {tag_object_ids}")
+            
             # Extract title from content if available
             title = None
             title_match = re.search(r'<h2>(.*?)</h2>', content)
             if title_match:
                 title = title_match.group(1)
+                print(f"   📝 Extracted title from content: {title}")
             if not title:
                 title = keyword  # Fallback to keyword
+                print(f"   📝 Using keyword as title: {title}")
+            
+            # Generate slug
+            slug = self.generate_slug(title)
+            print(f"   🔗 Generated slug: {slug}")
+            
+            # Prepare content document
             content_doc = {
                 "title": title,  # Use extracted title
                 "content": content,
-                "slug": self.generate_slug(title),  # Use slug from title
+                "slug": slug,  # Use slug from title
                 "excerpt": title,  # Use title as excerpt
                 "status": "pending",  # Set initial status as pending
                 "categoryIds": category_object_ids,
@@ -533,8 +1093,25 @@ class ContentService:
                 "image_urls": image_urls,  # Add image URLs
                 "metadata": metadata  # No generator metadata
             }
+            
+            print(f"   📄 Content document prepared, attempting database insertion...")
+            
+            # Insert into database
             result = await self.db.generated_content.insert_one(content_doc)
-            return bool(result.inserted_id)
+            
+            if result.inserted_id:
+                print(f"   ✅ Content successfully inserted into database!")
+                print(f"      - Document ID: {result.inserted_id}")
+                print(f"      - Collection: generated_content")
+                print(f"      - Status: pending")
+                print(f"   🎉 Database save operation completed successfully for '{keyword}'")
+                return True
+            else:
+                print(f"   ❌ Database insertion failed - no document ID returned")
+                return False
+                
         except Exception as e:
-            print(f"Error saving generated content: {str(e)}")
+            print(f"   ❌ Error saving generated content to database: {str(e)}")
+            print(f"   📍 Error occurred while processing keyword: '{keyword}'")
+            print(f"   🔍 Error details: {type(e).__name__}: {str(e)}")
             return False

@@ -529,9 +529,8 @@ Additional source material for reference:
         """
         try:
             BFL_API_KEY = os.getenv("BFL_API_KEY")
-            print(f"[DEBUG] BFL_API_KEY: {BFL_API_KEY}")  # Debug print
             if not BFL_API_KEY:
-                print("❌ BFL API key not found in environment variables")
+                print("❌ BFL_API_KEY not found in environment variables")
                 return None
 
             print(f"🎨 Generating image with BFL.ai: {prompt}")
@@ -633,10 +632,6 @@ Additional source material for reference:
         Convert the image to JPG before upload.
         """
         try:
-            print("AWS_ACCESS_KEY_ID:", os.getenv("AWS_ACCESS_KEY_ID"))
-            print("AWS_SECRET_ACCESS_KEY:", os.getenv("AWS_SECRET_ACCESS_KEY"))
-            print("S3_BUCKET_NAME:", os.getenv("S3_BUCKET_NAME"))
-            print("S3_REGION:", os.getenv("S3_REGION"))
             aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
             aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
             bucket_name = os.getenv("S3_BUCKET_NAME")
@@ -843,11 +838,46 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
 
             # --- CATEGORY SELECTION PROMPT ---
             category_list_str = ', '.join(category_names)
-            category_selection_instruction = f"""
-Here is a list of available categories: [{category_list_str}].
-Select the most relevant category for this content and return ONLY the category name as:
-SELECTED_CATEGORY: <category name>
-Place this line at the very top of your response, then provide the full content below.
+            print(f"🎯 Category Selection Debug:")
+            print(f"   - Available categories: {category_names}")
+            print(f"   - Category list string: {category_list_str}")
+            
+            # If no categories available, use a default
+            if not category_names:
+                print(f"   ⚠️ No categories available, using default")
+                category_selection_instruction = ""
+            else:
+                category_selection_instruction = f"""
+CRITICAL INSTRUCTION - YOU MUST FOLLOW THIS EXACTLY:
+
+You are writing content about "{keyword}". 
+
+AVAILABLE CATEGORIES (YOU MUST CHOOSE ONE OF THESE EXACT NAMES):
+{chr(10).join([f"- {cat}" for cat in category_names])}
+
+BEFORE writing any content, you MUST select the most appropriate category from the list above.
+
+YOUR RESPONSE MUST START WITH THIS EXACT LINE:
+SELECTED_CATEGORY: [EXACT category name from the list above]
+
+IMPORTANT RULES:
+- You can ONLY use categories from the list above
+- You CANNOT create new category names
+- You CANNOT use variations or synonyms
+- You MUST use the EXACT category name as shown above
+- If none seem perfect, choose the closest one
+
+DO NOT write any content until you have selected a category.
+DO NOT skip the category selection.
+
+After the SELECTED_CATEGORY line, then write your full content.
+
+EXAMPLE FORMAT:
+SELECTED_CATEGORY: SCI-TECH
+
+<article>
+[Your full content here]
+</article>
 """
             # --- END CATEGORY SELECTION PROMPT ---
 
@@ -936,7 +966,7 @@ Return the complete blog post with proper HTML formatting, including all tables 
             response = await self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "You are a professional content writer specializing in creating comprehensive, well-researched blog posts."},
+                    {"role": "system", "content": "You are a professional content writer specializing in creating comprehensive, well-researched blog posts. You MUST ALWAYS start your response with a category selection in the format 'SELECTED_CATEGORY: [category name]' before writing any content."},
                     {"role": "user", "content": content_prompt}
                 ],
                 temperature=0.7,
@@ -948,10 +978,62 @@ Return the complete blog post with proper HTML formatting, including all tables 
             # --- Parse selected category from the top of the response ---
             selected_category_name = None
             lines = generated_content.splitlines()
-            if lines and lines[0].startswith("SELECTED_CATEGORY:"):
-                selected_category_name = lines[0].replace("SELECTED_CATEGORY:", "").strip()
-                # Remove the first line from the content
-                generated_content = "\n".join(lines[1:]).lstrip()
+            print(f"🔍 Category Selection Response Debug:")
+            print(f"   - First line: {lines[0] if lines else 'No lines'}")
+            print(f"   - Total lines: {len(lines)}")
+            
+            # Try to find SELECTED_CATEGORY in the first few lines
+            for i, line in enumerate(lines[:5]):  # Check first 5 lines
+                if line.strip().startswith("SELECTED_CATEGORY:"):
+                    selected_category_name = line.replace("SELECTED_CATEGORY:", "").strip()
+                    print(f"   ✅ Selected category: {selected_category_name}")
+                    # Remove the category line from content
+                    lines.pop(i)
+                    generated_content = "\n".join(lines).lstrip()
+                    break
+            else:
+                print(f"   ❌ No SELECTED_CATEGORY found in first 5 lines")
+                # Try to find any category-like line
+                for i, line in enumerate(lines[:3]):
+                    line_stripped = line.strip()
+                    if line_stripped and not line_stripped.startswith('<') and len(line_stripped.split()) <= 3:
+                        # This might be a category name
+                        potential_category = line_stripped
+                        if potential_category in category_names:
+                            selected_category_name = potential_category
+                            print(f"   ✅ Found potential category: {selected_category_name}")
+                            lines.pop(i)
+                            generated_content = "\n".join(lines).lstrip()
+                            break
+                
+                # Fallback: Auto-select category based on keyword
+                if not selected_category_name and category_names:
+                    print(f"   🔄 Auto-selecting category based on keyword...")
+                    keyword_lower = keyword.lower()
+                    
+                    # Simple keyword-based category selection
+                    if any(word in keyword_lower for word in ['elon', 'musk', 'bill', 'gates', 'person', 'biography', 'bio']):
+                        selected_category_name = 'bio broly'
+                    elif any(word in keyword_lower for word in ['tech', 'technology', 'ai', 'software', 'computer', 'science', 'space', 'astronomy']):
+                        selected_category_name = 'SCI-TECH'
+                    elif any(word in keyword_lower for word in ['health', 'medical', 'doctor', 'hospital', 'medicine']):
+                        selected_category_name = 'SANTE'
+                    elif any(word in keyword_lower for word in ['politics', 'government', 'election', 'president', 'political']):
+                        selected_category_name = 'POLITIQUE'
+                    elif any(word in keyword_lower for word in ['economy', 'business', 'finance', 'money', 'economic']):
+                        selected_category_name = 'ECONOMIE'
+                    elif any(word in keyword_lower for word in ['world', 'international', 'global', 'country']):
+                        selected_category_name = 'MONDE'
+                    elif any(word in keyword_lower for word in ['entertainment', 'movie', 'music', 'celebrity', 'art', 'culture']):
+                        selected_category_name = 'DIVERTISSEMENT'
+                    elif any(word in keyword_lower for word in ['sport', 'football', 'basketball', 'athlete', 'game']):
+                        selected_category_name = 'SPORT'
+                    elif any(word in keyword_lower for word in ['cook', 'food', 'recipe', 'kitchen', 'culinary']):
+                        selected_category_name = 'DIVERTISSEMENT'  # Map cooking to entertainment
+                    else:
+                        selected_category_name = 'A LA UNE'  # Default to main category
+                    
+                    print(f"   ✅ Auto-selected category: {selected_category_name}")
             # --- End parse ---
             
             # Extract title from content (looking for h2 tag)
@@ -1073,103 +1155,3 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 'success': False,
                 'message': f'Error generating content: {str(e)}'
             }
-
-    async def generate_dummy_content(self, title="Dummy Title", content_type="biography") -> dict:
-        """
-        Dummy content generator for testing. Returns static data in the new minimal format.
-        """
-        dummy_content = f"""
-        <article>
-            <h2>{title}</h2>
-            <p>This is dummy generated content for testing purposes only.</p>
-            <img src=\"https://placehold.co/600x400\" alt=\"Dummy Image\" />
-        </article>
-        """
-        return {
-            "success": True,
-            "message": f"Dummy {content_type} content generated.",
-            "title": title,
-            "content": dummy_content,
-            "image_urls": ["https://placehold.co/600x400"],
-            "word_count": 12
-        }
-
-def test_bfl_image_generation(api_key: str, prompt: str, width: int = 1024, height: int = 1024):
-    """
-    Standalone test function to generate an image using BFL API and poll for the result, mimicking the curl commands.
-    Usage:
-        test_bfl_image_generation('your-api-key', 'beautiful sunset')
-    """
-    async def run():
-        headers = {
-            "x-key": api_key,
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "output_format": "png",
-            "prompt_upsampling": False,
-            "safety_tolerance": 2,
-            "prompt": prompt,
-            "width": width,
-            "height": height
-        }
-        async with aiohttp.ClientSession() as session:
-            # Step 1: POST to generate
-            print("Sending image generation request...")
-            async with session.post("https://api.bfl.ai/v1/flux-kontext-pro", headers=headers, json=payload) as resp:
-                if resp.status != 200:
-                    print(f"Error: {resp.status}")
-                    print(await resp.text())
-                    return
-                data = await resp.json()
-                print("Generation response:", data)
-                polling_url = data.get("polling_url")
-                if not polling_url:
-                    # fallback to id
-                    id_ = data.get("id")
-                    if not id_:
-                        print("No polling URL or id returned!")
-                        return
-                    polling_url = f"https://api.bfl.ai/v1/get_result?id={id_}"
-
-            # Step 2: Poll for result
-            print(f"Polling for result at: {polling_url}")
-            for attempt in range(30):
-                await asyncio.sleep(3)
-                async with session.get(polling_url, headers={"x-key": api_key}) as poll_resp:
-                    poll_data = await poll_resp.json()
-                    print(f"Attempt {attempt+1}: status={poll_data.get('status')}")
-                    if poll_data.get("status") == "Ready":
-                        result = poll_data.get("result", {})
-                        image_url = result.get("sample") or result.get("url")
-                        print(f"Image ready! URL: {image_url}")
-                        return image_url
-                    elif poll_data.get("status") == "Error":
-                        print(f"Generation failed: {poll_data}")
-                        return None
-            print("Timeout waiting for image generation.")
-            return None
-
-    asyncio.run(run())
-
-if __name__ == "__main__":
-    import asyncio
-    import sys
-
-    async def main():
-        # Prompt user for a keyword or use a default
-        prompt = input("Enter a prompt for the image (or leave blank for default): ")
-        if not prompt:
-            prompt = "A futuristic city skyline at sunset, ultra-realistic"
-        print(f"\nGenerating image for prompt: '{prompt}'\n")
-        
-        # Create ContentGenerator instance
-        generator = ContentGenerator()
-        # Generate image and upload to S3
-        image_url = await generator.generate_image(prompt)
-        if image_url:
-            print(f"\n✅ Image uploaded to S3: {image_url}\n")
-        else:
-            print("\n❌ Image generation or upload failed.\n")
-
-    asyncio.run(main())

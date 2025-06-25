@@ -179,12 +179,6 @@ class SchedulerService:
             else:
                 scheduled_dt = datetime.utcnow()
 
-            # Debug prints for createdAt, utcnow, and scheduled fields
-            print(f"[SCHEDULER DEBUG] scheduled_date: {scheduled_date}")
-            print(f"[SCHEDULER DEBUG] scheduled_time: {scheduled_time}")
-            print(f"[SCHEDULER DEBUG] createdAt/updatedAt to be set: {scheduled_dt}")
-            print(f"[SCHEDULER DEBUG] utcnow: {datetime.utcnow()}")
-
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},
                 {"$set": {

@@ -267,6 +267,75 @@ async def get_scheduled_content(
     content_service = ContentService(request.app.state.db)
     return await content_service.get_scheduled_content(status, date)
 
+@router.get("/processing-stats")
+async def get_processing_statistics(
+    request: Request,
+    user_email: str = None,
+    days: int = 7
+):
+    """Get processing statistics for the last N days"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Calculate date range
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Build query
+        query = {
+            "createdAt": {
+                "$gte": start_date,
+                "$lte": end_date
+            }
+        }
+        if user_email:
+            query["user_email"] = user_email
+        
+        # Get successful content count
+        successful_count = await request.app.state.db.generated_content.count_documents(query)
+        
+        # Get failed keywords count
+        failed_query = {
+            "created_at": {
+                "$gte": start_date,
+                "$lte": end_date
+            },
+            "status": "failed"
+        }
+        if user_email:
+            failed_query["user_email"] = user_email
+        
+        failed_count = await request.app.state.db.unprocessed_keywords.count_documents(failed_query)
+        
+        # Calculate success rate
+        total_processed = successful_count + failed_count
+        success_rate = (successful_count / total_processed * 100) if total_processed > 0 else 0
+        
+        # Get failure reasons breakdown
+        pipeline = [
+            {"$match": failed_query},
+            {"$group": {"_id": "$stage", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]
+        
+        failure_breakdown = await request.app.state.db.unprocessed_keywords.aggregate(pipeline).to_list(length=None)
+        
+        return {
+            "success": True,
+            "statistics": {
+                "period": f"Last {days} days",
+                "user_email": user_email or "All users",
+                "successful_content": successful_count,
+                "failed_keywords": failed_count,
+                "total_processed": total_processed,
+                "success_rate": round(success_rate, 2),
+                "failure_breakdown": failure_breakdown
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving processing statistics: {str(e)}")
+
 @router.get("/published-content")
 async def get_published_content(
     request: Request,
