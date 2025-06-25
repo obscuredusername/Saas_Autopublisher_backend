@@ -326,11 +326,11 @@ CONTENT: {content}
             prompts = self.content_prompts[content_type]
 
             # --- Start image generation tasks in parallel ---
-            print(f"🎨 Starting image generation tasks for: {keyword}")
-            image_prompt1 = f"Professional high-quality image of {keyword}, detailed and realistic"
-            image_prompt2 = f"{keyword} in action or in context, a photo of {keyword} in a scenario"
-            image_task1 = asyncio.create_task(self.generate_image(image_prompt1))
-            image_task2 = asyncio.create_task(self.generate_image(image_prompt2))
+            # REMOVE image generation here to avoid duplicate/unsafe prompts
+            # image_prompt1 = f"Professional high-quality image of {keyword}, detailed and realistic"
+            # image_prompt2 = f"{keyword} in action or in context, a photo of {keyword} in a scenario"
+            # image_task1 = asyncio.create_task(self.generate_image(image_prompt1))
+            # image_task2 = asyncio.create_task(self.generate_image(image_prompt2))
             # --- End image generation task start ---
 
             print(f"🤖 Generating content with GPT-4...")
@@ -412,32 +412,32 @@ Additional source material for reference:
             print(f"📊 Word count status: {word_count_status} ({word_count} words)")
 
             # --- Await image generation results ---
-            image_url1 = await image_task1
-            image_url2 = await image_task2
+            # image_url1 = await image_task1
+            # image_url2 = await image_task2
             # --- End image await ---
 
-            if image_url1 or image_url2:
-                print(f"✅ Generated images successfully")
+            if word_count >= 1500:
+                print(f"✅ Generated content successfully")
                 
                 # Insert images into the content
                 # Find the first paragraph tag to insert the first image
-                if image_url1:
-                    img_tag1 = f'<img src="{image_url1}" alt="{keyword}" class="main-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
-                    if '<p>' in generated_content:
-                        generated_content = generated_content.replace('<p>', f'<p>{img_tag1}', 1)
-                    else:
-                        generated_content = img_tag1 + generated_content
+                # if image_url1:
+                #     img_tag1 = f'<img src="{image_url1}" alt="{keyword}" class="main-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
+                #     if '<p>' in generated_content:
+                #         generated_content = generated_content.replace('<p>', f'<p>{img_tag1}', 1)
+                #     else:
+                #         generated_content = img_tag1 + generated_content
                 
                 # Insert second image roughly in the middle of the content
-                if image_url2:
-                    img_tag2 = f'<img src="{image_url2}" alt="{keyword} in context" class="context-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
-                    content_parts = generated_content.split('</p>')
-                    if len(content_parts) > 2:
-                        middle_index = len(content_parts) // 2
-                        content_parts.insert(middle_index, img_tag2)
-                        generated_content = '</p>'.join(content_parts)
-                    else:
-                        generated_content += img_tag2
+                # if image_url2:
+                #     img_tag2 = f'<img src="{image_url2}" alt="{keyword} in context" class="context-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
+                #     content_parts = generated_content.split('</p>')
+                #     if len(content_parts) > 2:
+                #         middle_index = len(content_parts) // 2
+                #         content_parts.insert(middle_index, img_tag2)
+                #         generated_content = '</p>'.join(content_parts)
+                #     else:
+                #         generated_content += img_tag2
 
             # Add references section
             if references:
@@ -460,7 +460,6 @@ Additional source material for reference:
                 'message': f'Generated {content_type} content: {word_count} words in {language}',
                 'title': title,
                 'content': generated_content,
-                'image_urls': [url for url in [image_url1, image_url2] if url],
                 'word_count': word_count
             }
             
@@ -478,7 +477,6 @@ Additional source material for reference:
         """
         async with self.image_semaphore:
             try:
-                print(f"🎨 Generating image: {prompt}")
                 image_url = await self.generate_image_bfl(prompt, size)
                 if image_url:
                     print(f"✅ Image generation successful")
@@ -694,6 +692,7 @@ Additional source material for reference:
             - Category should be specific and relevant
             - Headings should cover all important aspects of the topic
             - Image prompts should be detailed and specific
+            - Images should not be more than two, so please egenrate two prompts only
             - All content should be in {language}
             
             Return ONLY the JSON structure, nothing else."""
@@ -749,7 +748,7 @@ Additional source material for reference:
             # Take only the first two image prompts
             for img_prompt in blog_plan["image_prompts"][:2]:
                 # Add non-vulgarity requirement to image prompt
-                safe_img_prompt = img_prompt["prompt"] + " (The image must not be vulgar, explicit, or offensive in any way.)"
+                safe_img_prompt = img_prompt["prompt"] + " (The image must not be vulgar, explicit, or offensive in any way, nor it shows cleavage or tight clothing of any kind, clothes must be very less revealing.)"
                 task = asyncio.create_task(self.generate_image(safe_img_prompt))
                 image_tasks.append(task)
             
@@ -865,7 +864,7 @@ REQUIREMENTS:
 - Add relevant quotes and citations from sources
 - Target word count: 1500-2000 words
 - Use the exact title provided in the blog plan
-- Include anchor tags to sources contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in achor tags
+- Include anchor tags to sources (dont qoute them as source) contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in anchor tags
 
 STRUCTURED CONTENT REQUIREMENTS:
 1. For biographies/people:
@@ -1063,6 +1062,9 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 image_url = await task
                 if image_url:
                     image_urls.append(image_url)
+            # Enforce a maximum of two image URLs
+            image_urls = image_urls[:2]
+            print(f"Image URLs to be returned: {image_urls}")
             
             # Insert images into the content
             if image_urls:
@@ -1113,7 +1115,7 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 'message': f'Generated blog content for: {keyword}',
                 'title': blog_plan["title"],
                 'content': generated_content,
-                'image_urls': image_urls,
+                'image_urls': image_urls,  # Always a list of up to 2 URLs
                 'word_count': word_count,
                 'selected_category_name': selected_category_name
             }

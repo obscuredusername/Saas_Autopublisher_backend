@@ -594,18 +594,6 @@ class ContentService:
             
             print(f"✅ Blog plan generated for '{keyword}'")
             
-            image1_task = None
-            image2_task = None
-            if blog_plan and "image_prompts" in blog_plan and blog_plan["image_prompts"]:
-                img_prompt1 = blog_plan["image_prompts"][0]["prompt"]
-                image1_task = asyncio.create_task(self.content_generator.generate_image(img_prompt1))
-                if len(blog_plan["image_prompts"]) > 1:
-                    img_prompt2 = blog_plan["image_prompts"][1]["prompt"]
-                else:
-                    img_prompt2 = None
-            else:
-                img_prompt1 = img_prompt2 = None
-            
             # 5. Await scraping
             scraped_data = await scraping_task
             if not scraped_data:
@@ -620,7 +608,7 @@ class ContentService:
             
             print(f"✅ Scraped {len(scraped_data)} content items for '{keyword}'")
             
-            # 6. When both blog plan and scraping are ready, start main content generation and second image
+            # 6. When both blog plan and scraping are ready, start main content generation
             if blog_plan and scraped_data:
                 # Prepare final_data as before
                 final_data = {
@@ -641,23 +629,13 @@ class ContentService:
                     'category_names': category_names
                 }
                 
-                # Start second image generation
-                if img_prompt2:
-                    image2_task = asyncio.create_task(self.content_generator.generate_image(img_prompt2))
-                
-                # Start main content generation
+                # Start main content generation (handles image generation internally)
                 print(f"🤖 Generating content for '{keyword}'...")
-                content_task = asyncio.create_task(self.content_generator.generate_content_with_plan(final_data, "biography"))
-                
-                # Await all
-                content_result, image1_url, image2_url = await asyncio.gather(
-                    content_task,
-                    image1_task if image1_task else asyncio.sleep(0),
-                    image2_task if image2_task else asyncio.sleep(0)
-                )
+                content_result = await self.content_generator.generate_content_with_plan(final_data, "biography")
                 
                 # Check for image generation failure
-                if (img_prompt1 and not image1_url) or (img_prompt2 and not image2_url):
+                image_urls = content_result.get('image_urls', []) if content_result else []
+                if not image_urls or (len(image_urls) < 2 and len(blog_plan.get('image_prompts', [])) >= 2):
                     error_msg = f"Image generation failed for '{keyword}'"
                     print(f"❌ {error_msg}")
                     self.unprocessed_keywords.append({
@@ -705,7 +683,7 @@ class ContentService:
                         language=keyword_request.language.lower(),
                         category_ids=category_ids,
                         tag_ids=tag_ids,
-                        image_urls=[u for u in [image1_url, image2_url] if u],
+                        image_urls=image_urls,
                         metadata={},
                         scheduled_date=keyword_item.scheduledDate,
                         scheduled_time=keyword_item.scheduledTime,
