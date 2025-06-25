@@ -53,7 +53,7 @@ class ContentGenerator:
                 6. Add transitional phrases and explanatory content
                 7. Ensure content flows naturally and reads like original writing""",
                 
-                "user": """Create a comprehensive biography about {keyword} in {language}. Use the source material below as reference but COMPLETELY REWRITE everything in your own words. The content must be at least 1500 words.\n\nREQUIREMENTS:\n- Language: {language}\n- Minimum length: 1500 words\n- Paraphrase all information (no direct copying)\n- Use proper HTML structure as shown below\n- Include detailed analysis and context\n- Expand on key events with historical background\n- Add multiple sections covering different aspects of life\n- IMPORTANT: When referencing a source, always embed the hyperlink contextually within the paragraph using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Do NOT list sources at the end or outside the main text. Hyperlinks must be part of the narrative, not a separate source list.\n\nHTML Structure Required:\n<article class=\"biography\">\n    <h1 class=\"person-name\">{keyword}</h1>\n    
+                "user": """Create a comprehensive biography about {keyword} in {language}. Use the source material below as reference but COMPLETELY REWRITE everything in your own words. The content must be at least 1500 words.\n\nREQUIREMENTS:\n- Language: {language}\n- Minimum length: 1500 words\n- Paraphrase all information (no direct copying)\n- Use proper HTML structure as shown below\n- Include detailed analysis and context\n- Expand on key events with historical background\n- Add multiple sections covering different aspects of life\n- IMPORTANT: When referencing a source, always embed the hyperlink contextually within the paragraph using a natural phrase (anchor tags, not at the end of paragrpahs source please) such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Do NOT list sources at the end or outside the main text. Hyperlinks must be part of the narrative, not a separate source list.\n\nHTML Structure Required:\n<article class=\"biography\">\n    <h1 class=\"person-name\">{keyword}</h1>\n    
     <div class="bio-meta">
         <p class="bio-intro">
             [Comprehensive introduction paragraph - 100+ words]
@@ -677,11 +677,11 @@ Additional source material for reference:
                 ],
                 "image_prompts": [
                     {{
-                        "prompt": "Detailed prompt for first image",
+                        "prompt": "Detailed prompt for first image (should be realistic matching the blog)",
                         "purpose": "Purpose of this image in the blog"
                     }},
                     {{
-                        "prompt": "Detailed prompt for second image",
+                        "prompt": "Detailed prompt for second image (should be realistic matching the blog)",
                         "purpose": "Purpose of this image in the blog"
                     }}
                 ]
@@ -748,7 +748,7 @@ Additional source material for reference:
             # Take only the first two image prompts
             for img_prompt in blog_plan["image_prompts"][:2]:
                 # Add non-vulgarity requirement to image prompt
-                safe_img_prompt = img_prompt["prompt"] + " (The image must not be vulgar, explicit, or offensive in any way, nor it shows cleavage or tight clothing of any kind, clothes must be very less revealing.)"
+                safe_img_prompt = img_prompt["prompt"] + " (Generate image with conservative, loose-fitting clothing only. High necklines, long sleeves, full coverage. Professional modest attire like business suits, sweaters, or conservative dresses. No form-fitting or revealing clothing whatsoever. Family-friendly and appropriate.)"
                 task = asyncio.create_task(self.generate_image(safe_img_prompt))
                 image_tasks.append(task)
             
@@ -864,7 +864,7 @@ REQUIREMENTS:
 - Add relevant quotes and citations from sources
 - Target word count: 1500-2000 words
 - Use the exact title provided in the blog plan
-- Include anchor tags to sources (dont qoute them as source) contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in anchor tags
+- Include anchor tags to sources (dont qoute them as source, and please dont use one link twice for anchor tags) contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in anchor tags
 
 STRUCTURED CONTENT REQUIREMENTS:
 1. For biographies/people:
