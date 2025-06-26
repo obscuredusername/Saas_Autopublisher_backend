@@ -268,8 +268,6 @@ class ContentService:
             from app.models import KeywordItem
             keyword_item = KeywordItem(
                 text=keyword,
-                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
-                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
                 minLength=0
             )
             
@@ -292,20 +290,14 @@ class ContentService:
     async def process_with_links(self, keyword, unique_links, keyword_request, categories, subcategories, category_names):
         """Process keyword with given links"""
         try:
-            # Create keyword item
             from app.models import KeywordItem
             keyword_item = KeywordItem(
                 text=keyword,
-                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
-                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
                 minLength=0
             )
-            
-            # Use the existing pipeline logic but with provided links
             return await self.orchestrate_keyword_pipeline_with_links(
                 keyword_item, unique_links, keyword_request, categories, subcategories, category_names
             )
-            
         except Exception as e:
             print(f"   ❌ Error processing with links: {str(e)}")
             return False
@@ -338,54 +330,15 @@ class ContentService:
     async def process_with_simplified_generation(self, keyword, unique_links, keyword_request, categories, subcategories, category_names):
         """Process keyword with simplified content generation"""
         try:
-            # Create keyword item
             from app.models import KeywordItem
             keyword_item = KeywordItem(
                 text=keyword,
-                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
-                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
                 minLength=0
             )
-            # Use the existing pipeline logic but with provided links
             content_result = await self.orchestrate_keyword_pipeline_with_links(
                 keyword_item, unique_links, keyword_request, categories, subcategories, category_names
             )
-            if content_result and content_result.get('success'):
-                selected_category_name = content_result.get('selected_category_name')
-                category_ids = []
-                print(f"🎯 Processing selected category: {selected_category_name}")
-                if selected_category_name:
-                    for cat in categories:
-                        if cat['name'].strip().lower() == selected_category_name.strip().lower():
-                            category_ids = [str(cat['_id'])]
-                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
-                            break
-                        else:
-                            print(f"❌ Selected category '{selected_category_name}' not found in available categories")
-                if not category_ids:
-                    print(f"🔄 No GPT category selected, using content matching...")
-                    category_ids = await self.match_content_categories(content_result['content'], categories)
-                # Clean content and title before saving
-                cleaned_title, cleaned_content = self.clean_content_and_title(content_result['title'], content_result['content'])
-                tags = await self.get_all_tags()
-                tag_ids = await self.match_content_tags(cleaned_content, tags)
-                return await self.save_generated_content(
-                    keyword=keyword,
-                    content=cleaned_content,
-                    word_count=content_result['word_count'],
-                    language=keyword_request.language.lower(),
-                    category_ids=category_ids,
-                    tag_ids=tag_ids,
-                    image_urls=content_result.get('image_urls', []),
-                    metadata={},
-                    scheduled_date=keyword_item.scheduledDate,
-                    scheduled_time=keyword_item.scheduledTime,
-                    user_email=keyword_request.user_email,
-                    content_type="biography"
-                )
-            else:
-                print(f"❌ Content generation failed or returned no result.")
-                return False
+            return content_result
         except Exception as e:
             print(f"   ❌ Error processing with links: {str(e)}")
             return False
@@ -419,8 +372,6 @@ class ContentService:
                     'language': keyword_request.language.lower(),
                     'timestamp': datetime.now().isoformat(),
                     'total_results_found': len(scraped_data),
-                    'scheduledDate': keyword_item.scheduledDate,
-                    'scheduledTime': keyword_item.scheduledTime,
                     'user_email': keyword_request.user_email
                 },
                 'scraped_content': scraped_data,
@@ -457,8 +408,6 @@ class ContentService:
                     tag_ids=tag_ids,
                     image_urls=content_result.get('image_urls', []),
                     metadata={},
-                    scheduled_date=keyword_item.scheduledDate,
-                    scheduled_time=keyword_item.scheduledTime,
                     user_email=keyword_request.user_email,
                     content_type="biography"
                 )
@@ -606,8 +555,6 @@ class ContentService:
                         'language': keyword_request.language.lower(),
                         'timestamp': datetime.now().isoformat(),
                         'total_results_found': len(scraped_data),
-                        'scheduledDate': keyword_item.scheduledDate,
-                        'scheduledTime': keyword_item.scheduledTime,
                         'user_email': keyword_request.user_email
                     },
                     'scraped_content': scraped_data,
@@ -673,8 +620,6 @@ class ContentService:
                         tag_ids=tag_ids,
                         image_urls=image_urls,
                         metadata={},
-                        scheduled_date=keyword_item.scheduledDate,
-                        scheduled_time=keyword_item.scheduledTime,
                         user_email=keyword_request.user_email,
                         content_type="biography"
                     )
@@ -731,8 +676,7 @@ class ContentService:
         keyword: str,
         country: str,
         language: str,
-        scheduled_date: str,
-        scheduled_time: str,
+        min_length: int,
         user_email: str,
         content_type: str,
         selected_category_id: str = None,
@@ -742,14 +686,12 @@ class ContentService:
         category_names: List[str] = None
     ) -> None:
         try:
-            # Use passed categories, subcategories, and category_names
             if categories is None:
                 categories = []
             if subcategories is None:
                 subcategories = [cat for cat in categories if cat.get('parentId')]
             if category_names is None:
                 category_names = [cat['name'] for cat in categories]
-            # Now proceed with scraping
             print(f"🕷️ Starting content scraping for '{keyword}' ({len(unique_links)} links)")
             def scrape_with_retry():
                 scraped_data = self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=5)
@@ -762,7 +704,6 @@ class ContentService:
             if not scraped_data:
                 print(f"❌ No content scraped for '{keyword}' after retry")
                 return
-            # Restore real content generation with blog plan
             final_data = {
                 'search_info': {
                     'keyword': keyword,
@@ -770,8 +711,6 @@ class ContentService:
                     'language': language,
                     'timestamp': datetime.now().isoformat(),
                     'total_results_found': len(scraped_data),
-                    'scheduledDate': scheduled_date,
-                    'scheduledTime': scheduled_time,
                     'user_email': user_email
                 },
                 'scraped_content': scraped_data,
@@ -792,38 +731,7 @@ class ContentService:
                         print(f"❌ Content generation failed for '{keyword}' after retry. Error: {e2}")
                         return None
             result = await self.content_generator.generate_content_with_plan(final_data, content_type)
-            if not result or not result.get('success'):
-                print(f"🔄 Content generation failed for '{keyword}', retrying in 5 seconds...")
-                time.sleep(5)
-                result = await self.content_generator.generate_content_with_plan(final_data, content_type)
-                if not result or not result.get('success'):
-                    print(f"❌ Content generation failed for '{keyword}' after retry.")
-                    return
-            
-            if result['success']:
-                print(f"✅ Generated content in {language}: {result['word_count']} words")
-                # If GPT selected a category, use its ID
-                selected_category_name = result.get('selected_category_name')
-                category_ids = []
-                if selected_category_name:
-                    for cat in categories:
-                        if cat['name'].strip().lower() == selected_category_name.strip().lower():
-                            category_ids = [str(cat['_id'])]
-                            print(f"GPT selected category: {selected_category_name} (ID: {cat['_id']})")
-                            break
-                # Fallback to previous logic if not found
-                if not category_ids:
-                    if selected_category_id:
-                        category_ids = [selected_category_id]
-                    else:
-                        category_ids = await self.match_content_categories(result['content'], categories)
-                # Handle tags
-                tag_ids = []
-                if selected_tag_id:
-                    tag_ids = [selected_tag_id]
-                else:
-                    tags = await self.get_all_tags()
-                    tag_ids = await self.match_content_tags(result['content'], tags)
+            if result:
                 print(f"Content details:\n"
                       f"Keyword: {keyword}\n"
                       f"Word count: {result['word_count']}\n"
@@ -831,10 +739,8 @@ class ContentService:
                       f"Categories: {category_ids}\n"
                       f"Tags: {tag_ids}\n"
                       f"Image URLs: {result.get('image_urls', [])}\n"
-                      f"Scheduled: {scheduled_date} {scheduled_time}\n"
                       f"User: {user_email}\n"
                       f"Type: {content_type}")
-                # Save the content with proper payload
                 success = await self.save_generated_content(
                     keyword=keyword,
                     content=result['content'],
@@ -843,20 +749,16 @@ class ContentService:
                     category_ids=category_ids,
                     tag_ids=tag_ids,
                     image_urls=result.get('image_urls', []),
-                    metadata={},  # No metadata from generator
-                    scheduled_date=scheduled_date,
-                    scheduled_time=scheduled_time,
+                    metadata={},
                     user_email=user_email,
                     content_type=content_type
                 )
-                
                 if success:
                     print(f"✅ Content saved successfully to database")
                 else:
                     print(f"❌ Failed to save content to database")
             else:
                 print(f"❌ Content generation failed: {result['message']}")
-                
         except Exception as e:
             print(f"❌ Error processing '{keyword}': {str(e)}")
 
@@ -997,8 +899,6 @@ class ContentService:
         tag_ids: List[str],
         image_urls: List[str],
         metadata: Dict[str, Any],
-        scheduled_date: str,
-        scheduled_time: str,
         user_email: str,
         content_type: str
     ) -> bool:
@@ -1011,7 +911,6 @@ class ContentService:
             print(f"      - Categories: {category_ids}")
             print(f"      - Tags: {tag_ids}")
             print(f"      - Image URLs: {len(image_urls)} images")
-            print(f"      - Scheduled: {scheduled_date} {scheduled_time}")
             print(f"      - User: {user_email}")
             print(f"      - Content type: {content_type}")
             
@@ -1079,8 +978,6 @@ class ContentService:
                 "readingTime": word_count // 200,
                 "twitterCard": "summary_large_image",
                 "twitterDescription": title,
-                "scheduled_date": scheduled_date,  # Add scheduled date
-                "scheduled_time": scheduled_time,  # Add scheduled time
                 "user_email": user_email,  # Add user email
                 "content_type": content_type,  # Add content type
                 "image_urls": image_urls,  # Add image URLs

@@ -55,15 +55,15 @@ class ListDBResponse(BaseModel):
 # Scraping Models
 class KeywordItem(BaseModel):
     text: str
-    scheduledDate: str
-    scheduledTime: str
-    minLength: int = Field(ge=0)
+    minLength: Optional[int] = None
 
 class KeywordRequest(BaseModel):
     keywords: List[KeywordItem]
     country: str = "us"
     language: str = "en"
     user_email: str = "default@user.com"
+    minutes: int = 150  # Default to 150 if not provided
+    min_length: int = 0  # Global min_length for all keywords
 
 class ScrapingResponse(BaseModel):
     success: bool
@@ -81,8 +81,6 @@ class GeneratedContent(BaseModel):
     content_type: str
     word_count: int
     user_email: str
-    scheduled_date: str
-    scheduled_time: str
     status: str = "pending"  # pending, published, failed
     created_at: datetime = datetime.now()
     file_path: Optional[str]

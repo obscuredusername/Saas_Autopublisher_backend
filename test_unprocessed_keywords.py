@@ -37,11 +37,11 @@ async def test_automatic_unprocessed_keywords_functionality():
         # 2. Test processing keywords with some that will fail and some that will succeed
         print("\n2. 🚀 Testing keyword processing with mixed success/failure keywords...")
         test_keywords = [
-            {"text": "elon musk", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0},  # Should succeed
-            {"text": "bill gates", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0},  # Should succeed
-            {"text": "invalid_keyword_that_will_fail_12345", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0},  # Will fail
-            {"text": "another_invalid_keyword_98765", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0},  # Will fail
-            {"text": "mark zuckerberg", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0}  # Should succeed
+            {"text": "elon musk", "minLength": 0},
+            {"text": "bill gates", "minLength": 0},
+            {"text": "invalid_keyword_that_will_fail_12345", "minLength": 0},
+            {"text": "another_invalid_keyword_98765", "minLength": 0},
+            {"text": "mark zuckerberg", "minLength": 0}
         ]
         
         test_request = {
@@ -108,8 +108,8 @@ async def test_automatic_unprocessed_keywords_functionality():
         # 5. Test the system's ability to handle edge cases
         print("\n5. 🔍 Testing edge case handling...")
         edge_case_keywords = [
-            {"text": "very_obscure_keyword_12345", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0},
-            {"text": "test_keyword_with_special_chars_!@#$%", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0}
+            {"text": "very_obscure_keyword_12345", "minLength": 0},
+            {"text": "test_keyword_with_special_chars_!@#$%", "minLength": 0}
         ]
         
         edge_case_request = {

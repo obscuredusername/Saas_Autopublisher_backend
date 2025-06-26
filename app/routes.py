@@ -216,15 +216,27 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
     Get unique links immediately and schedule content generation
     """
     content_service = ContentService(request.app.state.db)
-        
+    
+    
     # Fetch categories and tags once
     categories = await content_service.get_all_categories()
     subcategories = [cat for cat in categories if cat.get('parentId')]
     category_names = [cat['name'] for cat in categories]
     tags = await content_service.get_all_tags()
     
+    # Patch keywords to ensure minLength is set from min_length if missing
+    if hasattr(keyword_request, 'min_length'):
+        for kw in keyword_request.keywords:
+            if not hasattr(kw, 'minLength') or kw.minLength is None:
+                kw.minLength = keyword_request.min_length
+
     response = await content_service.process_keywords(keyword_request)
     
+    # Set scheduler interval if available
+    scheduler = request.app.state.scheduler
+    if scheduler and hasattr(keyword_request, 'minutes'):
+        scheduler.set_publish_interval(keyword_request.minutes)
+
     # Schedule background tasks for content generation
     for keyword_item in keyword_request.keywords:
         if response.unique_links:
@@ -243,8 +255,6 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
                 keyword_request.language.lower(),
                 keyword_item.minLength,
                 keyword_request.user_email,  # Pass email separately
-                keyword_item.scheduledDate,
-                keyword_item.scheduledTime,
                 content_type,  # Pass the determined content type
                 None, None, categories, subcategories, category_names, tags
             )
@@ -342,7 +352,7 @@ async def get_published_content(
         
         query = {"status": "published"}
         if date:
-            query["scheduled_date"] = date
+            pass  # removed scheduled_date filtering
             
         cursor = target_db.published_content.find(query)
         content_list = await cursor.to_list(length=None)

@@ -22,7 +22,7 @@ async def test_category_selection():
         # 1. Test processing a simple keyword to see category selection
         print("\n1. 🚀 Testing keyword processing with category selection...")
         test_keywords = [
-            {"text": "elon musk", "scheduledDate": "2024-01-01", "scheduledTime": "10:00", "minLength": 0}
+            {"text": "elon musk", "minLength": 0}
         ]
         
         test_request = {

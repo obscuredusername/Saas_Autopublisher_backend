@@ -32,6 +32,7 @@ class SchedulerService:
         self.max_empty_checks = 5  # Stop after 5 empty checks
         self.categories_cache = None
         self.categories_cache_time = None
+        self.publish_interval_minutes = 10  # Default to 150 minutes
 
         print(f"✅ Scheduler initialized: {source_db}.{source_collection} -> {target_db}.{target_collection}")
     
@@ -98,38 +99,20 @@ class SchedulerService:
         return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+00:00"
 
     async def check_scheduled_content(self):
-        """Check for content that needs to be published (date/time in the past and status 'pending')"""
+        """Publish the oldest pending post, regardless of scheduled time."""
         try:
-            current_time = datetime.now(timezone.utc)
-            current_date = current_time.strftime("%Y-%m-%d")
-            current_time_str = current_time.strftime("%H:%M")
-
-            print(f"🔍 Checking for content at (UTC): {current_date} {current_time_str}")
-
-            published_count = 0
-
-            # Query for content scheduled for now or in the past
-            query = {
-                "status": "pending",
-                "$or": [
-                    {"scheduled_date": {"$lt": current_date}},
-                    {"scheduled_date": current_date, "scheduled_time": {"$lte": current_time_str}}
-                ]
-            }
-
-            cursor = self.source_db[self.source_collection].find(query)
-            async for content in cursor:
-                print(f"✅ READY TO PUBLISH: {content.get('content', '')[:30]}... - {content.get('scheduled_date')} at {content.get('scheduled_time')}")
+            # Find the oldest pending post
+            content = await self.source_db[self.source_collection].find_one(
+                {"status": "pending"},
+                sort=[("createdAt", 1)]  # Use createdAt to determine order
+            )
+            if content:
+                print(f"✅ READY TO PUBLISH: {content.get('content', '')[:30]}...")
                 await self.publish_content(content)
-                published_count += 1
-
-            if published_count == 0:
-                self.empty_checks += 1
-                print(f"ℹ️ No content ready for publishing")
+                self.empty_checks = 0
             else:
-                self.empty_checks = 0  # Reset counter when content is found
-                print(f"📊 Published {published_count} items")
-
+                self.empty_checks += 1
+                print(f"ℹ️ No pending content found")
         except Exception as e:
             print(f"❌ Error in check_scheduled_content: {str(e)}")
             raise
@@ -137,11 +120,8 @@ class SchedulerService:
     async def publish_content(self, content: dict):
         """Publish content to target database (strip scheduling fields, insert as-is, set status to published in both DBs)"""
         try:
-            # Remove scheduling fields
-            content_to_publish = dict(content)
-            for key in ["scheduled_date", "scheduled_time"]:
-                content_to_publish.pop(key, None)
             # Remove MongoDB _id to avoid duplicate key error
+            content_to_publish = dict(content)
             content_to_publish.pop("_id", None)
             # Set status to published
             content_to_publish["status"] = "published"
@@ -166,45 +146,39 @@ class SchedulerService:
                     # Still update status below
 
             # Update status in source collection regardless of duplicate or other errors
-            scheduled_date = content.get("scheduled_date")
-            scheduled_time = content.get("scheduled_time")
-            use_scheduled = False
-            if scheduled_date and scheduled_time:
-                try:
-                    scheduled_dt = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
-                    use_scheduled = True
-                except Exception as e:
-                    print(f"⚠️ Error parsing scheduled_date/time: {e}, using current UTC time.")
-                    scheduled_dt = datetime.now(timezone.utc)
-            else:
-                scheduled_dt = datetime.now(timezone.utc)
+            utc_timestamp = datetime.now(timezone.utc).timestamp()
 
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},
                 {"$set": {
                     "status": "published",
-                    "createdAt": scheduled_dt,
-                    "updatedAt": scheduled_dt
+                    "createdAt": utc_timestamp,
+                    "updatedAt": utc_timestamp
                 }}
             )
-            print(f"✅ Published content (status updated in source DB).{' (Duplicate slug)' if duplicate else ''} {'(Used scheduled date/time)' if use_scheduled else '(Used UTC now)'}")
+            print(f"✅ Published content (status updated in source DB).{' (Duplicate slug)' if duplicate else ''} (Used UTC now)")
 
         except Exception as e:
             print(f"❌ Error publishing content: {str(e)}")
             
+    def set_publish_interval(self, minutes: int):
+        """Set the interval (in minutes) between publishing posts."""
+        self.publish_interval_minutes = minutes
+        print(f"⏱️ Publish interval set to {minutes} minutes")
+
     async def start_scheduler(self):
-        """Start the scheduler loop"""
-        print("🚀 Starting scheduler...")
+        """Start the scheduler loop, publishing one post every X minutes."""
+        print(f"🚀 Starting scheduler ({self.publish_interval_minutes} min interval)...")
         self.is_running = True
         self.empty_checks = 0
-        
+
         while self.is_running:
             try:
                 await self.check_scheduled_content()
-                await asyncio.sleep(300)
+                await asyncio.sleep(self.publish_interval_minutes * 60)
             except Exception as e:
                 print(f"❌ Scheduler error: {str(e)}")
-                await asyncio.sleep(300)
+                await asyncio.sleep(self.publish_interval_minutes * 60)
 
     def resume_scheduler(self):
         """Resume the scheduler"""
