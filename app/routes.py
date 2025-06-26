@@ -216,13 +216,7 @@ async def scrape_keywords(request: Request, keyword_request: KeywordRequest, bac
     Get unique links immediately and schedule content generation
     """
     content_service = ContentService(request.app.state.db)
-    
-    # Check if scheduler is running and restart if needed
-    scheduler = request.app.state.scheduler
-    if not scheduler.is_scheduler_running():
-        print("🔄 Restarting scheduler...")
-        scheduler.resume_scheduler()
-    
+        
     # Fetch categories and tags once
     categories = await content_service.get_all_categories()
     subcategories = [cat for cat in categories if cat.get('parentId')]

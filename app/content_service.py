@@ -310,51 +310,50 @@ class ContentService:
             print(f"   ❌ Error processing with links: {str(e)}")
             return False
 
+    def clean_content_and_title(self, title: str, content: str):
+        """
+        - Removes <img> tags whose src does NOT start with 'https://autopublisher-crm'
+        - If title is '[Reference in fr]', replaces it with the first <h1>...</h1> in content and removes that <h1> from content
+        Returns: (new_title, cleaned_content)
+        """
+        def img_replacer(match):
+            src = match.group(1)
+            if src.startswith("https://autopublisher-crm"):
+                return match.group(0)  # keep the tag
+            return ""  # remove the tag
+
+        img_pattern = re.compile(r'<img\s+[^>]*src="([^"]+)"[^>]*>', re.IGNORECASE)
+        cleaned_content = img_pattern.sub(img_replacer, content)
+
+        # 2. If title is [Reference in fr], extract first <h1>...</h1>
+        if title.strip().lower() == "[reference in fr]":
+            h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', cleaned_content, re.IGNORECASE | re.DOTALL)
+            if h1_match:
+                new_title = h1_match.group(1).strip()
+                # Remove the first <h1>...</h1> from content
+                cleaned_content = cleaned_content[:h1_match.start()] + cleaned_content[h1_match.end():]
+                return new_title, cleaned_content
+        return title, cleaned_content
+
     async def process_with_simplified_generation(self, keyword, unique_links, keyword_request, categories, subcategories, category_names):
-        """Process with simplified content generation"""
+        """Process keyword with simplified content generation"""
         try:
-            # Scrape minimal content
-            loop = asyncio.get_running_loop()
-            scraped_data = await loop.run_in_executor(None, lambda: 
-                self.scraping_service.scraper.scrape_multiple_urls(unique_links, target_count=2)
+            # Create keyword item
+            from app.models import KeywordItem
+            keyword_item = KeywordItem(
+                text=keyword,
+                scheduledDate=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
+                scheduledTime=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                minLength=0
             )
-            
-            if not scraped_data:
-                return False
-            
-            # Generate simple blog plan
-            blog_plan = await self.content_generator.generate_blog_plan(keyword, keyword_request.language)
-            if not blog_plan:
-                return False
-            
-            # Prepare data for simplified generation
-            final_data = {
-                'search_info': {
-                    'keyword': keyword,
-                    'country': keyword_request.country.lower(),
-                    'language': keyword_request.language.lower(),
-                    'timestamp': datetime.now().isoformat(),
-                    'total_results_found': len(scraped_data),
-                    'scheduledDate': keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
-                    'scheduledTime': keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
-                    'user_email': keyword_request.user_email
-                },
-                'scraped_content': scraped_data,
-                'blog_plan': blog_plan,
-                'video_info': None,  # Skip video for simplified approach
-                'subcategories': subcategories,
-                'category_names': category_names
-            }
-            
-            # Generate content with simplified approach
-            content_result = await self.content_generator.generate_content_with_plan(final_data, "biography")
-            
+            # Use the existing pipeline logic but with provided links
+            content_result = await self.orchestrate_keyword_pipeline_with_links(
+                keyword_item, unique_links, keyword_request, categories, subcategories, category_names
+            )
             if content_result and content_result.get('success'):
-                # Save to database
                 selected_category_name = content_result.get('selected_category_name')
                 category_ids = []
                 print(f"🎯 Processing selected category: {selected_category_name}")
-                
                 if selected_category_name:
                     for cat in categories:
                         if cat['name'].strip().lower() == selected_category_name.strip().lower():
@@ -363,43 +362,32 @@ class ContentService:
                             break
                         else:
                             print(f"❌ Selected category '{selected_category_name}' not found in available categories")
-                
                 if not category_ids:
                     print(f"🔄 No GPT category selected, using content matching...")
                     category_ids = await self.match_content_categories(content_result['content'], categories)
-                
-                if re.match(r'\[Reference in [a-z]+\]', content_result['title']):
-                    h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', content_result['content'], re.IGNORECASE | re.DOTALL)
-                    if h1_match:
-                        title = h1_match.group(1).strip()
-                        print(f"Extracted title: {title}")
-                else:
-                    print("No h1 tag found")
-                
+                # Clean content and title before saving
+                cleaned_title, cleaned_content = self.clean_content_and_title(content_result['title'], content_result['content'])
                 tags = await self.get_all_tags()
-                tag_ids = await self.match_content_tags(content_result['content'], tags)
-                
-                save_success = await self.save_generated_content(
+                tag_ids = await self.match_content_tags(cleaned_content, tags)
+                return await self.save_generated_content(
                     keyword=keyword,
-                    content=content_result['content'],
+                    content=cleaned_content,
                     word_count=content_result['word_count'],
                     language=keyword_request.language.lower(),
                     category_ids=category_ids,
                     tag_ids=tag_ids,
                     image_urls=content_result.get('image_urls', []),
                     metadata={},
-                    scheduled_date=keyword_request.keywords[0].scheduledDate if keyword_request.keywords else "2024-01-01",
-                    scheduled_time=keyword_request.keywords[0].scheduledTime if keyword_request.keywords else "10:00",
+                    scheduled_date=keyword_item.scheduledDate,
+                    scheduled_time=keyword_item.scheduledTime,
                     user_email=keyword_request.user_email,
                     content_type="biography"
                 )
-                
-                return save_success
-            
-            return False
-            
+            else:
+                print(f"❌ Content generation failed or returned no result.")
+                return False
         except Exception as e:
-            print(f"   ❌ Error in simplified generation: {str(e)}")
+            print(f"   ❌ Error processing with links: {str(e)}")
             return False
 
     async def orchestrate_keyword_pipeline_with_links(self, keyword_item, unique_links, keyword_request, categories, subcategories, category_names):
