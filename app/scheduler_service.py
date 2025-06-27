@@ -32,7 +32,7 @@ class SchedulerService:
         self.max_empty_checks = 5  # Stop after 5 empty checks
         self.categories_cache = None
         self.categories_cache_time = None
-        self.publish_interval_minutes = 10  # Default to 150 minutes
+        self.publish_interval_minutes = 5  # Default to 150 minutes
 
         print(f"✅ Scheduler initialized: {source_db}.{source_collection} -> {target_db}.{target_collection}")
     
@@ -126,6 +126,10 @@ class SchedulerService:
             # Set status to published
             content_to_publish["status"] = "published"
 
+            # Log the publish attempt with timestamp
+            publish_time = datetime.now(timezone.utc)
+            print(f"[PUBLISH LOG] {publish_time.strftime('%Y-%m-%d %H:%M:%S %Z')} - Attempting to publish: {content_to_publish.get('title', str(content_to_publish)[:30])}")
+
             print("\n📦 CONTENT BEING PUSHED TO DATABASE:")
             print("=" * 80)
             print("Content:", str(content_to_publish)[:200] + ("..." if len(str(content_to_publish)) > 200 else ""))
@@ -146,7 +150,7 @@ class SchedulerService:
                     # Still update status below
 
             # Update status in source collection regardless of duplicate or other errors
-            utc_timestamp = datetime.now(timezone.utc).timestamp()
+            utc_timestamp = publish_time.timestamp()
 
             await self.source_db[self.source_collection].update_one(
                 {"_id": content["_id"]},
@@ -156,7 +160,7 @@ class SchedulerService:
                     "updatedAt": utc_timestamp
                 }}
             )
-            print(f"✅ Published content (status updated in source DB).{' (Duplicate slug)' if duplicate else ''} (Used UTC now)")
+            print(f"✅ Published content (status updated in source DB).{' (Duplicate slug)' if duplicate else ''} (Used UTC now) [PUBLISHED AT: {publish_time.strftime('%Y-%m-%d %H:%M:%S %Z')}]\n")
 
         except Exception as e:
             print(f"❌ Error publishing content: {str(e)}")
