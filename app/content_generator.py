@@ -443,11 +443,11 @@ Additional source material for reference:
             if references:
                 references_section = f"""
 <section class="references">
-    <h2>[References in {language}]</h2>
+    <h2> References in {language}</h2>
     <ul class="reference-list">
 """
                 for ref in references:
-                    references_section += f'        <li><a href="{ref["url"]}" target="_blank" rel="noopener noreferrer">{ref["title"]}</a></li>\n'
+                    references_section += f'<li><a href="{ref["url"]}" target="_blank" rel="noopener noreferrer">{ref["title"]}</a></li>\n'
                 
                 references_section += """    </ul>
 </section>"""
@@ -595,7 +595,7 @@ Additional source material for reference:
     async def upload_to_s3(self, image_url: str, session: aiohttp.ClientSession) -> Optional[str]:
         """
         Download image from BFL and upload to AWS S3 bucket, returning the public URL.
-        Convert the image to JPG before upload.
+        Convert the image to WebP before upload.
         """
         try:
             aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
@@ -618,20 +618,20 @@ Additional source material for reference:
                 tmp_png_file.write(image_data)
                 png_file_path = tmp_png_file.name
 
-            # Convert PNG to JPG using PIL
-            jpg_file_path = png_file_path.replace('.png', '.jpg')
+            # Convert PNG to WebP using PIL
+            webp_file_path = png_file_path.replace('.png', '.webp')
             try:
                 with Image.open(png_file_path) as im:
                     rgb_im = im.convert('RGB')
-                    rgb_im.save(jpg_file_path, 'JPEG', quality=95)
+                    rgb_im.save(webp_file_path, 'WEBP', quality=65, method=6)
             except Exception as e:
-                print(f"❌ Error converting PNG to JPG: {str(e)}")
+                print(f"❌ Error converting PNG to WebP: {str(e)}")
                 os.remove(png_file_path)
                 return None
             finally:
                 os.remove(png_file_path)  # Remove the PNG file after conversion
 
-            s3_key = f"bfl-images/{uuid4().hex}.jpg"
+            s3_key = f"bfl-images/{uuid4().hex}.webp"
             print(f"📤 Uploading to S3 bucket {bucket_name} as {s3_key}...")
             s3 = boto3.client(
                 "s3",
@@ -641,16 +641,16 @@ Additional source material for reference:
             )
             try:
                 s3.upload_file(
-                    Filename=jpg_file_path,
+                    Filename=webp_file_path,
                     Bucket=bucket_name,
                     Key=s3_key,
-                    ExtraArgs={'ContentType': 'image/jpeg'}
+                    ExtraArgs={'ContentType': 'image/webp'}
                 )
             except (BotoCoreError, NoCredentialsError) as e:
                 print(f"❌ S3 upload failed: {str(e)}")
                 return None
             finally:
-                os.remove(jpg_file_path)
+                os.remove(webp_file_path)
 
             url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
             print(f"✅ Image uploaded to S3: {url}")
