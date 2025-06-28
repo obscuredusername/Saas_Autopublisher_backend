@@ -698,7 +698,7 @@ Additional source material for reference:
             Return ONLY the JSON structure, nothing else."""
 
             response = await self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional blog planner and content strategist. You excel at creating comprehensive blog structures and creative content plans. Always respond with valid JSON only."},
                     {"role": "user", "content": blog_plan_prompt}
