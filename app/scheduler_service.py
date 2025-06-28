@@ -32,7 +32,7 @@ class SchedulerService:
         self.max_empty_checks = 5  # Stop after 5 empty checks
         self.categories_cache = None
         self.categories_cache_time = None
-        self.publish_interval_minutes = 5  # Default to 150 minutes
+        self.publish_interval_minutes = 150  # Default to 150 minutes
 
         print(f"✅ Scheduler initialized: {source_db}.{source_collection} -> {target_db}.{target_collection}")
     

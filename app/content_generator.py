@@ -205,271 +205,6 @@ Remember: Write everything in {language} and ensure the content is at least 1500
             print(f"Error in relevance calculation: {str(e)}")
             return chunks[:top_k]
 
-    async def generate_content(self, scraped_data: Dict[str, Any], content_type: str = "biography") -> Dict[str, Any]:
-        """
-        Generate comprehensive content based on scraped data
-        Only handles content generation - no database operations
-        """
-        try:
-            if content_type not in self.content_prompts:
-                return {
-                    'success': False,
-                    'message': f"Invalid content type: {content_type}"
-                }
-
-            # Extract metadata
-            search_info = scraped_data.get("search_info", {})
-            keyword = search_info.get("keyword", "")
-            language = search_info.get("language", "en")
-            
-            if not keyword:
-                return {'success': False, 'message': "No keyword found"}
-
-            print(f"🎯 Generating {content_type} content for: {keyword} in {language}")
-
-            # First, generate an attention-catching title
-            title_prompt = f"""Create a highly creative and engaging title for a {content_type} about {keyword} in {language}. 
-            The title should be:
-            - Extremely creative and unique
-            - Attention-grabbing and memorable
-            - Include a creative metaphor, play on words, or political slogan
-            - 5-10 words long
-            - Include the keyword {keyword} in a creative way
-            - Be appropriate for the content type
-            - Written in {language}
-            - Avoid generic or boring titles
-            - Use literary devices like alliteration, metaphors, or wordplay
-            - For political figures, consider using political slogans or campaign themes
-            - Make it controversial or thought-provoking when appropriate
-            
-            Examples of creative titles for political figures:
-            - "Bill Clinton: Making America Great Again Before It Was Cool"
-            - "The Comeback Kid: Bill Clinton's Political Odyssey"
-            - "From Arkansas to the White House: The Bill Clinton Revolution"
-            - "The Charismatic Commander: Bill Clinton's Presidential Legacy"
-            - "Clinton's America: The 90s Renaissance"
-            
-            Examples of creative titles for other figures:
-            - "The Digital Alchemist: How {keyword} Transformed Technology"
-            - "{keyword}: The Architect of Tomorrow's World"
-            - "From Vision to Reality: The {keyword} Revolution"
-            - "The Untold Saga of {keyword}: A Modern Epic"
-            - "{keyword}: Where Innovation Meets Imagination"
-            
-            Return ONLY the creative title, nothing else."""
-
-            title_response = await self.client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a creative content writer specializing in crafting unique, attention-grabbing titles that stand out and engage readers. You excel at creating titles that are both memorable and thought-provoking, especially for political and historical figures."},
-                    {"role": "user", "content": title_prompt}
-                ],
-                temperature=0.95,  # Increased temperature for more creativity
-                max_tokens=100
-            )
-            
-            title = title_response.choices[0].message.content.strip()
-            
-            # Create slug from keyword instead of title
-            clean_keyword = keyword.lower()
-            clean_keyword = re.sub(r'[^a-z0-9\s-]', '', clean_keyword)
-            clean_keyword = re.sub(r'\s+', '-', clean_keyword)
-            clean_keyword = re.sub(r'-+', '-', clean_keyword)
-            clean_keyword = clean_keyword.strip('-')
-            slug = clean_keyword
-            
-            print(f"📝 Extracted title: {title}")
-            print(f"🔗 Generated slug from keyword: {slug}")
-
-            # Process scraped content
-            if not scraped_data.get("scraped_content"):
-                return {'success': False, 'message': "No scraped content found"}
-
-            # Create comprehensive content chunks and collect references
-            all_chunks = []
-            references = []
-            for item in scraped_data.get("scraped_content", []):
-                title = item.get('title', '')
-                content = item.get('content', '')
-                url = item.get('url', '')
-                
-                # Add to references if it's a valid URL
-                if url and url.startswith(('http://', 'https://')):
-                    references.append({
-                        'title': title,
-                        'url': url
-                    })
-                
-                # Create rich context block
-                context_block = f"""
-TITLE: {title}
-SOURCE: {url}
-CONTENT: {content}
----
-"""
-                chunks = self.chunk_text(context_block)
-                all_chunks.extend(chunks)
-
-            # Get most relevant chunks
-            relevant_chunks = self.get_most_relevant_chunks(
-                all_chunks, 
-                query=f"{keyword} {language}",
-                top_k=self.max_chunks
-            )
-
-            content_text = "\n\n=== SOURCE EXCERPT ===\n".join(relevant_chunks)
-
-            if not content_text.strip():
-                return {'success': False, 'message': "No relevant content found"}
-
-            # Get prompts
-            prompts = self.content_prompts[content_type]
-
-            # --- Start image generation tasks in parallel ---
-            # REMOVE image generation here to avoid duplicate/unsafe prompts
-            # image_prompt1 = f"Professional high-quality image of {keyword}, detailed and realistic"
-            # image_prompt2 = f"{keyword} in action or in context, a photo of {keyword} in a scenario"
-            # image_task1 = asyncio.create_task(self.generate_image(image_prompt1))
-            # image_task2 = asyncio.create_task(self.generate_image(image_prompt2))
-            # --- End image generation task start ---
-
-            print(f"🤖 Generating content with GPT-4...")
-            
-            # First generation attempt
-            response = await self.client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": prompts["system"]},
-                    {"role": "user", "content": prompts["user"].format(
-                        keyword=keyword,
-                        language=language,
-                        scraped_data=content_text
-                    )}
-                ],
-                temperature=0.7,
-                max_tokens=4000
-            )
-            
-            generated_content = response.choices[0].message.content.strip()
-            
-            # Extract title from content (looking for h2 tag)
-            title_match = re.search(r'<h2>(.*?)</h2>', generated_content)
-            if title_match:
-                title = title_match.group(1)
-                # Remove the h2 tag from content
-                generated_content = generated_content.replace(f'<h2>{title}</h2>', '')
-            else:
-                title = title_match.group(1)  # Fallback to blog plan title
-            
-            word_count = len(generated_content.split())
-            
-            print(f"📝 Initial generation: {word_count} words")
-            
-            # Calculate minimum acceptable word count (75% of target)
-            min_acceptable_words = int(1500 * 0.75)
-            print(f"📏 Minimum acceptable words: {min_acceptable_words}")
-            
-            # If content is still too short, expand it
-            attempts = 0
-            while word_count < min_acceptable_words and attempts < 3:
-                print(f"⚠️ Content too short ({word_count}/{min_acceptable_words} words). Expanding... (Attempt {attempts + 1})")
-                
-                expansion_prompt = f"""
-The following content is too short ({word_count} words). Please expand it to at least {min_acceptable_words} words by:
-1. Adding more detailed explanations
-2. Including additional historical context
-3. Expanding on key points with examples
-4. Adding more subsections where appropriate
-5. Providing deeper analysis and insights
-
-MAINTAIN the same language ({language}) and HTML structure. DO NOT repeat information, but ADD NEW relevant details.
-
-Current content to expand:
-{generated_content}
-
-Additional source material for reference:
-{content_text}
-"""
-                
-                expansion_response = await self.client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[
-                        {"role": "system", "content": prompts["system"]},
-                        {"role": "user", "content": expansion_prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=4000
-                )
-                
-                generated_content = expansion_response.choices[0].message.content.strip()
-                word_count = len(generated_content.split())
-                attempts += 1
-                
-                print(f"📝 Expanded to: {word_count} words")
-
-            # Add word count status to metadata
-            word_count_status = "optimal" if word_count >= 1500 else "acceptable" if word_count >= min_acceptable_words else "below_minimum"
-            print(f"📊 Word count status: {word_count_status} ({word_count} words)")
-
-            # --- Await image generation results ---
-            # image_url1 = await image_task1
-            # image_url2 = await image_task2
-            # --- End image await ---
-
-            if word_count >= 1500:
-                print(f"✅ Generated content successfully")
-                
-                # Insert images into the content
-                # Find the first paragraph tag to insert the first image
-                # if image_url1:
-                #     img_tag1 = f'<img src="{image_url1}" alt="{keyword}" class="main-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
-                #     if '<p>' in generated_content:
-                #         generated_content = generated_content.replace('<p>', f'<p>{img_tag1}', 1)
-                #     else:
-                #         generated_content = img_tag1 + generated_content
-                
-                # Insert second image roughly in the middle of the content
-                # if image_url2:
-                #     img_tag2 = f'<img src="{image_url2}" alt="{keyword} in context" class="context-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
-                #     content_parts = generated_content.split('</p>')
-                #     if len(content_parts) > 2:
-                #         middle_index = len(content_parts) // 2
-                #         content_parts.insert(middle_index, img_tag2)
-                #         generated_content = '</p>'.join(content_parts)
-                #     else:
-                #         generated_content += img_tag2
-
-            # Add references section
-            if references:
-                references_section = f"""
-<section class="references">
-    <h2> References in {language}</h2>
-    <ul class="reference-list">
-"""
-                for ref in references:
-                    references_section += f'<li><a href="{ref["url"]}" target="_blank" rel="noopener noreferrer">{ref["title"]}</a></li>\n'
-                
-                references_section += """    </ul>
-</section>"""
-                
-                # Add references section at the end of the content
-                generated_content += references_section
-
-            return {
-                'success': True,
-                'message': f'Generated {content_type} content: {word_count} words in {language}',
-                'title': title,
-                'content': generated_content,
-                'word_count': word_count
-            }
-            
-        except Exception as e:
-            print(f"❌ Error generating content: {str(e)}")
-            return {
-                'success': False,
-                'message': f'Error generating content: {str(e)}'
-            }
-
     async def generate_image(self, prompt: str, size: str = "1024x1024") -> Optional[str]:
         """
         Generate an image using BFL.ml and upload to IMGBB
@@ -698,7 +433,7 @@ Additional source material for reference:
             Return ONLY the JSON structure, nothing else."""
 
             response = await self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a professional blog planner and content strategist. You excel at creating comprehensive blog structures and creative content plans. Always respond with valid JSON only."},
                     {"role": "user", "content": blog_plan_prompt}
@@ -864,6 +599,7 @@ REQUIREMENTS:
 - Add relevant quotes and citations from sources
 - Target word count: 1500-2000 words
 - Use the exact title provided in the blog plan
+- DO NOT include any h1 tags in the content (title is separate)
 - Include anchor tags to sources (dont qoute them as source, and please dont use one link twice for anchor tags) contextually within the content, using a natural phrase such as: 'We can understand the situation better from the words of <a href=\"[URL]\" target=\"_blank\">[valuable anchor]</a>'. Anchor Tag must be part of the narrative, not a separate source list. And do not repeat links in anchor tags
 
 STRUCTURED CONTENT REQUIREMENTS:
@@ -932,9 +668,9 @@ SOURCE MATERIAL BY SECTION:
 Return the complete blog post with proper HTML formatting, including all tables and bullet points as specified above."""
 
             response = await self.client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are a professional content writer specializing in creating comprehensive, well-researched blog posts. You MUST ALWAYS start your response with a category selection in the format 'SELECTED_CATEGORY: [category name]' before writing any content."},
+                    {"role": "system", "content": "You are a professional content writer specializing in creating comprehensive, well-researched blog posts. You MUST ALWAYS start your response with a category selection in the format 'SELECTED_CATEGORY: [category name]' before writing any content. DO NOT include any h1 tags in your content - the title is provided separately."},
                     {"role": "user", "content": content_prompt}
                 ],
                 temperature=0.7,
@@ -1004,24 +740,21 @@ Return the complete blog post with proper HTML formatting, including all tables 
                     print(f"   ✅ Auto-selected category: {selected_category_name}")
             # --- End parse ---
             
-            # Extract title from content (looking for h2 tag)
-            title_match = re.search(r'<h2>(.*?)</h2>', generated_content)
-            if title_match:
-                title = title_match.group(1)
-                # Remove the h2 tag from content
-                generated_content = generated_content.replace(f'<h2>{title}</h2>', '')
-            else:
-                title = blog_plan["title"]  # Fallback to blog plan title
+            # Always use the blog plan title, don't extract from content
+            title = blog_plan["title"]
+            
+            # Remove any h1 tags from content (title should be separate)
+            generated_content = re.sub(r'<h1>.*?</h1>', '', generated_content, flags=re.DOTALL)
             
             # Calculate word count
             word_count = len(generated_content.split())
             print(f"📝 Generated content: {word_count} words")
             
-            # Verify word count is within target range
-            if word_count < 1500:
-                print(f"⚠️ Warning: Word count ({word_count}) is below target range (1500-2000)")
+            # Verify word count is within target range (changed from 1500 to 800)
+            if word_count < 800:
+                print(f"⚠️ Warning: Word count ({word_count}) is below target range (800-2000)")
                 # If content is too short, try to expand it
-                expansion_prompt = f"""Expand the following content to at least 1500 words by adding more details and context.
+                expansion_prompt = f"""Expand the following content to at least 800 words by adding more details and context.
                 Maintain the same language ({language}) and HTML structure.
                 Use the source material for additional information.
 
@@ -1032,7 +765,7 @@ Return the complete blog post with proper HTML formatting, including all tables 
                 {json.dumps(section_chunks, indent=2)}"""
 
                 expansion_response = await self.client.chat.completions.create(
-                    model="gpt-4",
+                    model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": "You are a professional content writer specializing in expanding content while maintaining quality."},
                         {"role": "user", "content": expansion_prompt}
