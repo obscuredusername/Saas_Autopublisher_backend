@@ -18,6 +18,10 @@ from botocore.exceptions import BotoCoreError, NoCredentialsError
 from uuid import uuid4
 import tempfile
 from PIL import Image
+import random
+import requests
+from PIL import Image
+from io import BytesIO
 
 load_dotenv()
 
@@ -223,6 +227,36 @@ Remember: Write everything in {language} and ensure the content is at least 1500
                 print(f"❌ Error in image generation: {str(e)}")
                 return None
 
+    async def upload_to_fastapi(self, image_url: str, keyword: str) -> Optional[str]:
+        """
+        Save image to disk in /var/www/images and return the public URL.
+        The name is the keyword (no spaces, a-zA-Z0-9 only) merged with a random 2- or 3-digit number.
+        """
+        base_name = re.sub(r'[^a-zA-Z0-9]', '', keyword.replace(' ', ''))[:20]
+        rand_num = str(random.randint(100, 999))
+        safe_name = f"{base_name}{rand_num}"
+        filename = f"{safe_name}.webp"
+        save_dir = "/var/www/images"
+        os.makedirs(save_dir, exist_ok=True)
+        filepath = os.path.join(save_dir, filename)
+        try:
+            response = requests.get(image_url, timeout=30)
+            if response.status_code != 200:
+                print(f"❌ Failed to download image: {image_url}")
+                return None
+            try:
+                img = Image.open(BytesIO(response.content)).convert("RGB")
+            except Exception:
+                print(f"❌ Invalid image format for: {image_url}")
+                return None
+            img.save(filepath, "WEBP", quality=65)
+            # Return the public URL (adjust domain as needed)
+            public_url = f"https://handicap-internatioanl.fr/images/{filename}"
+            return public_url
+        except Exception as e:
+            print(f"❌ Image save failed: {e}")
+            return None
+
     async def generate_image_bfl(self, prompt: str, size: str = "1024x1024") -> Optional[str]:
         """
         Generate image using BFL.ml API with correct authentication format
@@ -296,11 +330,11 @@ Remember: Write everything in {language} and ensure the content is at least 1500
                                 
                                 if image_url:
                                     print(f"✅ BFL image generated: {image_url}")
-                                    
-                                    # Now upload to S3
-                                    s3_url = await self.upload_to_s3(image_url, session)
-                                    if s3_url:
-                                        return s3_url
+                                    # Now upload to FastAPI server
+                                    # Use the keyword and a random number for the name
+                                    fastapi_url = await self.upload_to_fastapi(image_url, prompt)
+                                    if fastapi_url:
+                                        return fastapi_url
                                     else:
                                         # Return BFL URL as fallback
                                         return image_url
@@ -325,73 +359,6 @@ Remember: Write everything in {language} and ensure the content is at least 1500
 
         except Exception as e:
             print(f"❌ BFL generation error: {str(e)}")
-            return None
-
-    async def upload_to_s3(self, image_url: str, session: aiohttp.ClientSession) -> Optional[str]:
-        """
-        Download image from BFL and upload to AWS S3 bucket, returning the public URL.
-        Convert the image to WebP before upload.
-        """
-        try:
-            aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
-            aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-            bucket_name = os.getenv("S3_BUCKET_NAME")
-            region = os.getenv("S3_REGION", "eu-north-1")
-            if not all([aws_access_key, aws_secret_key, bucket_name, region]):
-                print("⚠️ AWS S3 credentials or bucket info missing in environment variables")
-                return None
-
-            print(f"📥 Downloading image from BFL...")
-            async with session.get(image_url) as response:
-                if response.status != 200:
-                    print(f"❌ Failed to download image from BFL: {response.status}")
-                    return None
-                image_data = await response.read()
-
-            # Save to a temporary PNG file first
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_png_file:
-                tmp_png_file.write(image_data)
-                png_file_path = tmp_png_file.name
-
-            # Convert PNG to WebP using PIL
-            webp_file_path = png_file_path.replace('.png', '.webp')
-            try:
-                with Image.open(png_file_path) as im:
-                    rgb_im = im.convert('RGB')
-                    rgb_im.save(webp_file_path, 'WEBP', quality=65, method=6)
-            except Exception as e:
-                print(f"❌ Error converting PNG to WebP: {str(e)}")
-                os.remove(png_file_path)
-                return None
-            finally:
-                os.remove(png_file_path)  # Remove the PNG file after conversion
-
-            s3_key = f"bfl-images/{uuid4().hex}.webp"
-            print(f"📤 Uploading to S3 bucket {bucket_name} as {s3_key}...")
-            s3 = boto3.client(
-                "s3",
-                aws_access_key_id=aws_access_key,
-                aws_secret_access_key=aws_secret_key,
-                region_name=region
-            )
-            try:
-                s3.upload_file(
-                    Filename=webp_file_path,
-                    Bucket=bucket_name,
-                    Key=s3_key,
-                    ExtraArgs={'ContentType': 'image/webp'}
-                )
-            except (BotoCoreError, NoCredentialsError) as e:
-                print(f"❌ S3 upload failed: {str(e)}")
-                return None
-            finally:
-                os.remove(webp_file_path)
-
-            url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
-            print(f"✅ Image uploaded to S3: {url}")
-            return url
-        except Exception as e:
-            print(f"❌ S3 upload error: {str(e)}")
             return None
 
     async def generate_blog_plan(self, keyword: str, language: str = "en") -> Dict[str, Any]:
@@ -802,7 +769,7 @@ Return the complete blog post with proper HTML formatting, including all tables 
             # Insert images into the content
             if image_urls:
                 for i, image_url in enumerate(image_urls):
-                    img_tag = f'<img src="{image_url}" alt="{keyword} - {blog_plan["image_prompts"][i]["purpose"]}" class="blog-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
+                    img_tag = f'<img src="{image_url}" alt="{keyword} - {blog_plan["image_prompts"][i]["purpose"]}" rel ="nofollow" class="blog-image" style="max-width: 100%; height: auto; margin: 20px 0;" />'
                     if i == 0:
                         if '<p>' in generated_content:
                             generated_content = generated_content.replace('<p>', f'<p>{img_tag}', 1)

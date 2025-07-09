@@ -1,12 +1,8 @@
 import os
 import re
-import tempfile
 import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from PIL import Image
-import boto3
-from botocore.exceptions import BotoCoreError, NoCredentialsError
 
 # Load environment variables
 load_dotenv()
@@ -14,57 +10,31 @@ load_dotenv()
 MONGO_URI = os.getenv("TARGET_DB_URI")
 MONGO_DB = os.getenv("TARGET_DB")
 MONGO_COLLECTION = os.getenv("TARGET_COLLECTION", "posts")
-AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-S3_BUCKET = os.getenv("S3_BUCKET_NAME")
-S3_REGION = os.getenv("S3_REGION", "eu-north-1")
+FASTAPI_URL = os.getenv("IMAGE_SERVER_URL", "http://localhost:8000/save-image")
+API_KEY = os.getenv("IMAGE_SERVER_API_KEY", "b7e2c1f4-8a2e-4c3a-9e1d-2f6b7a5c9e3f")
 
-assert MONGO_URI and MONGO_DB and AWS_ACCESS_KEY and AWS_SECRET_KEY and S3_BUCKET, "Missing required environment variables."
+assert MONGO_URI and MONGO_DB, "Missing required environment variables."
 
-# S3 client
-s3 = boto3.client(
-    "s3",
-    aws_access_key_id=AWS_ACCESS_KEY,
-    aws_secret_access_key=AWS_SECRET_KEY,
-    region_name=S3_REGION
-)
+def sanitize_name(name):
+    return re.sub(r'[^a-zA-Z0-9_-]', '', name)
 
-def download_image(url):
+def upload_via_fastapi(image_url, name):
+    payload = {
+        "apikey": API_KEY,
+        "name": sanitize_name(name),
+        "image_url": image_url
+    }
     try:
-        resp = requests.get(url, timeout=30)
+        resp = requests.post(FASTAPI_URL, json=payload, timeout=60)
         resp.raise_for_status()
-        return resp.content
+        data = resp.json()
+        if data.get("success"):
+            return data["url"]
+        else:
+            print(f"❌ FastAPI error: {data}")
+            return None
     except Exception as e:
-        print(f"❌ Failed to download {url}: {e}")
-        return None
-
-def convert_to_webp(image_bytes, quality=60):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".webp") as tmp_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as jpg_file:
-                jpg_file.write(image_bytes)
-                jpg_file.flush()
-                with Image.open(jpg_file.name) as im:
-                    rgb_im = im.convert('RGB')
-                    rgb_im.save(tmp_file.name, 'WEBP', quality=quality, method=6)
-        return tmp_file.name
-    except Exception as e:
-        print(f"❌ Failed to convert image to WebP: {e}")
-        return None
-
-def upload_to_s3(filepath):
-    try:
-        s3_key = f"bfl-images/{os.path.basename(filepath)}"
-        s3.upload_file(
-            Filename=filepath,
-            Bucket=S3_BUCKET,
-            Key=s3_key,
-            ExtraArgs={'ContentType': 'image/webp'}
-        )
-        url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{s3_key}"
-        return url
-    except (BotoCoreError, NoCredentialsError, Exception) as e:
-        print(f"❌ Failed to upload to S3: {e}")
+        print(f"❌ FastAPI upload failed: {e}")
         return None
 
 def replace_img_srcs(content, old_new_url_map):
@@ -87,18 +57,11 @@ def main():
             continue
         old_new_url_map = {}
         new_image_urls = []
-        for url in image_urls[:2]:
+        for idx, url in enumerate(image_urls[:2]):
             print(f"Processing image: {url}")
-            img_bytes = download_image(url)
-            if not img_bytes:   
-                new_image_urls.append(url)
-                continue
-            webp_path = convert_to_webp(img_bytes, quality=60)
-            if not webp_path:
-                new_image_urls.append(url)
-                continue
-            new_url = upload_to_s3(webp_path)
-            os.remove(webp_path)
+            # Use doc _id and idx for unique name if needed
+            name = f"{doc.get('_id', 'img')}_{idx}"
+            new_url = upload_via_fastapi(url, name)
             if new_url:
                 old_new_url_map[url] = new_url
                 new_image_urls.append(new_url)
