@@ -48,11 +48,11 @@ async def startup_db_client():
     app.state.db = db
     
     # Start the content scheduler in the background
-    try:
-        await start_scheduler_background()
-        logger.info("✅ Content scheduler started successfully")
-    except Exception as e:
-        logger.error(f"❌ Failed to start content scheduler: {str(e)}")
+    # try:
+    #     await start_scheduler_background()
+    #     logger.info("✅ Content scheduler started successfully")
+    # except Exception as e:
+    #     logger.error(f"❌ Failed to start content scheduler: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

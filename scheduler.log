@@ -275,3 +275,31 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-07-15 20:20:38,969 - INFO - ✅ Content scheduler stopped successfully
 2025-07-15 20:30:48,365 - INFO - 🛑 Background scheduler stopped
 2025-07-15 20:30:48,366 - INFO - ✅ Content scheduler stopped successfully
+2025-07-16 03:57:06,255 - INFO - 🚀 Background scheduler started
+2025-07-16 03:57:06,256 - INFO - ✅ Content scheduler started successfully
+2025-07-16 03:57:06,267 - INFO - ✅ Database connections initialized
+2025-07-16 03:57:06,268 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-16 03:57:06,268 - INFO - 📊 Target: CRM.posts
+2025-07-16 03:57:06,269 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-16 03:57:06,269 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-16 03:57:08,999 - INFO - ✅ READY TO PUBLISH: Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho...
+2025-07-16 03:57:09,000 - INFO - [PUBLISH LOG] 2025-07-15 22:57:08 UTC - Attempting to publish: Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho
+2025-07-16 03:57:09,001 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-16 03:57:09,002 - INFO - ================================================================================
+2025-07-16 03:57:09,004 - INFO - Content: {'title': "Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho", 'content': '<article>\n<h2>Les Secrets de la Nature: Découvrez l\'univers fascinant de Ninho</h2>\n\n<h3>Présentation de N...
+2025-07-16 03:57:09,004 - INFO - ================================================================================
+2025-07-16 03:57:10,627 - INFO - ✅ Content saved with ID: 6876dcc54418ee3e8587603e
+2025-07-16 03:57:10,805 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-15 22:57:08 UTC]
+
+2025-07-16 03:57:10,805 - INFO - ⏰ Next check in 150 minutes...
+2025-07-16 03:59:58,990 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-16 04:27:24,887 - INFO - 🛑 Scheduler stop requested
+2025-07-16 04:27:25,506 - INFO - ✅ Database connections closed
+2025-07-16 04:27:25,506 - INFO - 🛑 Background scheduler stopped
+2025-07-16 04:27:25,507 - INFO - ✅ Content scheduler stopped successfully
