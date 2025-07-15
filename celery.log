@@ -1,0 +1,31 @@
+ 
+ -------------- celery@prosperity-OMEN-by-HP-Gaming-Laptop-16-k0xxx v5.5.3 (immunity)
+--- ***** ----- 
+-- ******* ---- Linux-6.8.0-51-generic-x86_64-with-glibc2.39 2025-07-01 14:59:22
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         tasks:0x7a527779e3c0
+- ** ---------- .> transport:   srv://zubairisworking:**@cluster0.dtdmgdx.mongodb.net/celery
+- ** ---------- .> results:     mongodb+srv://cryptoanalysis45:**@cluster0.zqdhkxn.mongodb.net/CRM
+- *** --- * --- .> concurrency: 20 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . app.services.tasks.generate_content_task
+
+[2025-07-01 14:59:26,281: INFO/MainProcess] Connected to srv://zubairisworking:**@cluster0.dtdmgdx.mongodb.net/celery
+[2025-07-01 14:59:33,169: INFO/MainProcess] celery@prosperity-OMEN-by-HP-Gaming-Laptop-16-k0xxx ready.
+
+worker: Hitting Ctrl+C again will initiate cold shutdown, terminating all running tasks!
+
+worker: Warm shutdown (MainProcess)
+
+worker: Hitting Ctrl+C again will terminate all running tasks!
+
+Waiting gracefully for cold shutdown to complete...
+
+worker: Cold shutdown (MainProcess)

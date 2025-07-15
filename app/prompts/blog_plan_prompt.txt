@@ -1,0 +1,16 @@
+# Blog plan prompt template
+# Use {keyword} and {language} as placeholders
+Create a comprehensive blog plan for {keyword} in {language}.
+Return the response in JSON format with the following structure:
+{
+    "title": "Creative and engaging title",
+    "category": "Main category for the blog",
+    "headings": [
+        {"title": "Heading title", "description": "Brief description of what this section will cover"}
+    ],
+    "image_prompts": [
+        {"prompt": "Detailed prompt for first image", "purpose": "Purpose of this image in the blog"},
+        {"prompt": "Detailed prompt for second image", "purpose": "Purpose of this image in the blog"}
+    ]
+}
+# Requirements: Title should be creative, category specific, headings comprehensive, all content in {language}. 
