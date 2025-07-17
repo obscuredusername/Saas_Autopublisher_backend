@@ -4,6 +4,7 @@ from newsapi import NewsApiClient
 import datetime
 import sys
 from bson import ObjectId
+import math
 
 # Add the parent directory to the path so we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -25,6 +26,26 @@ def insert_natural_backlink(html_content, url, title):
         anchor = f'<a href="{url}" target="_blank" rel="noopener">{title}</a>'
         paragraphs[mid] += f' According to {anchor},'
     return '</p>'.join(paragraphs)
+
+# Utility function for rotating schedule
+def generate_rotating_schedule(start_time, category_limits, default_gap_minutes=60):
+    categories = list(category_limits.keys())
+    total_posts = sum(category_limits.values())
+    schedule = []
+    counters = {cat: 0 for cat in categories}
+    current_time = start_time
+    # Calculate minimum gap to fit all posts in the window (assume 12 hours)
+    total_minutes = 12 * 60
+    min_gap = max(default_gap_minutes, math.floor(total_minutes / (total_posts - 1))) if total_posts > 1 else 0
+    while sum(counters.values()) < total_posts:
+        for cat in categories:
+            if counters[cat] < category_limits[cat]:
+                schedule.append((cat, current_time))
+                counters[cat] += 1
+                current_time += datetime.timedelta(minutes=min_gap)
+                if sum(counters.values()) >= total_posts:
+                    break
+    return schedule
 
 class NewsService:
     def __init__(self):
@@ -156,7 +177,14 @@ class NewsService:
             
             generated_posts = []
             
-            for i, article in enumerate(scraped_results):
+            # --- NEW ROTATION LOGIC ---
+            category_limits = {'finance': 4, 'business': 2, 'fashion': 3}
+            start_time = datetime.datetime.now(datetime.timezone.utc).replace(hour=8, minute=0, second=0, microsecond=0)
+            schedule = generate_rotating_schedule(start_time, category_limits, default_gap_minutes=60)
+            # Only use as many scraped_results as needed
+            schedule = schedule[:len(scraped_results)]
+            for i, (cat, scheduled_time) in enumerate(schedule):
+                article = scraped_results[i]
                 try:
                     print(f"📝 Generating blog post {i+1}/{len(scraped_results)} from: {article.get('title', 'No title')}")
                     
@@ -180,7 +208,7 @@ Requirements:
 5. Structure with proper HTML headings (h2, h3) and paragraphs
 6. Make it engaging and informative
 
-Return the response in this exact format:
+IMPORTANT: Your response MUST start with 'TITLE:' on the very first line, and 'CONTENT:' on the very next line. Do NOT include anything else before, between, or after these sections. Do NOT include explanations, notes, or any other text. Only output:
 TITLE: [rephrased title here]
 CONTENT: [detailed rephrased content in HTML format here]
 """
@@ -302,19 +330,26 @@ CONTENT: [detailed rephrased content in HTML format here]
                             target_db_name = "CRM"  # News always goes to CRM database
                             target_collection = "posts"  # Collection is always posts
                             author_id = ObjectId('6872543bb13173a4a942d3c4')
+                            # Find category ID for cat
+                            categories = await blog_service.get_all_categories()
+                            cat_id = None
+                            for c in categories:
+                                if c['name'].strip().lower() == cat:
+                                    cat_id = ObjectId(c['_id'])
+                                    break
                             db_id = await blog_service.save_generated_content(
-                                keyword=original_title,
+                                keyword=article.get('title', ''),
                                 content=content_with_images,
                                 word_count=len(rephrased_content.split()),
                                 language=language,
-                                category_ids=[ObjectId('6872543bb13173a4a942d3c4')],  # Always assign this category ID to news
+                                category_ids=[cat_id] if cat_id else [],
                                 tag_ids=[],
                                 image_urls=image_urls,
                                 metadata={
                                     'source_article': article.get('url', ''),
-                                    'original_title': original_title,
+                                    'original_title': article.get('title', ''),
                                     'rephrased_title': rephrased_title,
-                                    'news_category': category,
+                                    'news_category': cat,
                                     'generated_from_news': True,
                                     'original_content_length': original_length,
                                     'generated_content_length': len(rephrased_content),
@@ -322,10 +357,11 @@ CONTENT: [detailed rephrased content in HTML format here]
                                 },
                                 user_email=user_email,
                                 content_type="news_article",
-                                post_index=i,
+                                post_index=0,  # Not used for scheduling now
                                 target_db=target_db_name,
                                 target_collection=target_collection,
-                                author_id=author_id
+                                author_id=author_id,
+                                scheduled_at=scheduled_time
                             )
                             if db_id:
                                 print(f"✅ Saved to database successfully (ID: {db_id})")
@@ -352,7 +388,8 @@ CONTENT: [detailed rephrased content in HTML format here]
                         print(f"   💾 Saved to: {filepath}")
                         
                     else:
-                        print(f"❌ Failed to parse rephrased content for: {original_title}")
+                        print(f"[ERROR] Failed to parse rephrased content for: {original_title}")
+                        print(f"[ERROR] Full OpenAI response was:\n{response_text}\n---END RESPONSE---")
                         
                 except Exception as e:
                     print(f"❌ Error generating blog post {i+1}: {str(e)}")

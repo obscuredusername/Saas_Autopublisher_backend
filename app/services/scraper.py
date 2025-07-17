@@ -276,19 +276,26 @@ class WebContentScraper:
     def get_yahoo_news_links(self, category_url):
         """
         Scrape all news article links from a Yahoo News category page.
+        Improved: Accepts more link patterns and both relative and absolute URLs.
         """
         try:
             response = self.session.get(category_url, timeout=self.default_timeout)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
-            links = []
+            links = set()
             for a in soup.find_all('a', href=True):
                 href = a['href']
-                if href.startswith('/news/') and href.count('-') > 0:
-                    full_url = 'https://www.yahoo.com' + href
-                    if full_url not in links:
-                        links.append(full_url)
-            return links
+                # Accept relative links to news, finance, business, lifestyle, world
+                if any(href.startswith(p) for p in ['/news/', '/finance/', '/business/', '/lifestyle/', '/world/']):
+                    full_url = 'https://www.yahoo.com' + href if href.startswith('/') else href
+                    if 'yahoo.com' in full_url:
+                        links.add(full_url)
+                # Accept full Yahoo URLs
+                elif href.startswith('https://') and 'yahoo.com' in href:
+                    links.add(href)
+            # Filter out navigation, ad, or non-article links (basic filter: must contain a dash and not end with /)
+            article_links = [l for l in links if '-' in l and not l.rstrip('/').endswith(('news', 'finance', 'business', 'lifestyle', 'world'))]
+            return article_links
         except Exception as e:
             print(f"Error scraping Yahoo News category: {e}")
             return []

@@ -1021,7 +1021,8 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
         post_index: int = 0,
         target_db: str = None,
         target_collection: str = None,
-        author_id: ObjectId = None
+        author_id: ObjectId = None,
+        scheduled_at: Optional[datetime] = None
     ) -> bool:
         """Save generated content to the database"""
         try:
@@ -1056,12 +1057,14 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
             
             # Calculate scheduledAt time (staggered by 10 minutes per post for news, 5 minutes for keywords)
             now = datetime.now(timezone.utc)
-            if content_type == "news_article":
-                scheduled_at = now + timedelta(minutes=post_index * 10)  # 10 minutes apart for news
+            if scheduled_at is not None:
+                scheduled_at_time = scheduled_at
+            elif content_type == "news_article":
+                scheduled_at_time = now + timedelta(minutes=post_index * 10)  # 10 minutes apart for news
             else:
-                scheduled_at = now + timedelta(minutes=post_index * 5)  # 5 minutes apart for keywords
+                scheduled_at_time = now + timedelta(minutes=post_index * 5)  # 5 minutes apart for keywords
             
-            print(f"   ⏰ Scheduled for publishing at: {scheduled_at}")
+            print(f"   ⏰ Scheduled for publishing at: {scheduled_at_time}")
             
             if category_ids is None:
                 category_ids = []
@@ -1127,7 +1130,7 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
                 "metadata": metadata,
                 "word_count": word_count,
                 "language": language,
-                "scheduledAt": scheduled_at,  # When to publish
+                "scheduledAt": scheduled_at_time,  # When to publish
                 "target_db": target_db,  # Which database to publish to
                 "target_collection": target_collection,
                 "target_url": target_db_uri  # Store the target URL for publishing
@@ -1144,7 +1147,7 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
             
             if result.inserted_id:
                 print(f"   ✅ Content saved successfully to broker.posts with ID: {result.inserted_id}")
-                print(f"   📅 Will be published to {target_db}.{target_collection} at: {scheduled_at}")
+                print(f"   📅 Will be published to {target_db}.{target_collection} at: {scheduled_at_time}")
                 print(f"   🔗 Target URL: {target_db_uri}")
                 client.close()
                 return str(result.inserted_id)
