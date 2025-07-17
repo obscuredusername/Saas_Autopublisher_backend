@@ -277,27 +277,37 @@ class WebContentScraper:
         """
         Scrape all news article links from a Yahoo News category page.
         Improved: Accepts more link patterns and both relative and absolute URLs.
+        Always uses a browser User-Agent to avoid bot detection.
         """
         try:
-            response = self.session.get(category_url, timeout=self.default_timeout)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            response = self.session.get(category_url, headers=headers, timeout=self.default_timeout)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             links = set()
             for a in soup.find_all('a', href=True):
                 href = a['href']
-                # Accept relative links to news, finance, business, lifestyle, world
-                if any(href.startswith(p) for p in ['/news/', '/finance/', '/business/', '/lifestyle/', '/world/']):
-                    full_url = 'https://www.yahoo.com' + href if href.startswith('/') else href
-                    if 'yahoo.com' in full_url:
+                # Accept relative and absolute Yahoo article links
+                if (
+                    href.startswith('/news/') or
+                    href.startswith('/finance/') or
+                    href.startswith('/business/') or
+                    href.startswith('/lifestyle/') or
+                    href.startswith('/world/') or
+                    (href.startswith('https://') and 'yahoo.com' in href)
+                ):
+                    # Only include links that look like articles (not navigation, ads, etc.)
+                    if href.count('-') > 0 or 'article' in href:
+                        if href.startswith('http'):
+                            full_url = href
+                        else:
+                            full_url = f'https://www.yahoo.com{href}'
                         links.add(full_url)
-                # Accept full Yahoo URLs
-                elif href.startswith('https://') and 'yahoo.com' in href:
-                    links.add(href)
-            # Filter out navigation, ad, or non-article links (basic filter: must contain a dash and not end with /)
-            article_links = [l for l in links if '-' in l and not l.rstrip('/').endswith(('news', 'finance', 'business', 'lifestyle', 'world'))]
-            return article_links
+            return list(links)
         except Exception as e:
-            print(f"Error scraping Yahoo News category: {e}")
+            print(f"[YAHOO][ERROR] Failed to scrape Yahoo news links: {e}")
             return []
 
     # Add other utility methods as needed, e.g., scrape_multiple_urls, extract_main_content, video_link_scraper, etc. 
