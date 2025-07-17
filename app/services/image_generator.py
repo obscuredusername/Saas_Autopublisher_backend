@@ -161,7 +161,7 @@ class ImageGenerator:
         rand_num = str(random.randint(100, 999))
         safe_name = f"{base_name}{rand_num}"
         filename = f"{safe_name}.webp"
-        save_dir = "images"
+        save_dir = "/var/www/images"
         os.makedirs(save_dir, exist_ok=True)
         filepath = os.path.join(save_dir, filename)
         try:
