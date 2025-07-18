@@ -324,7 +324,7 @@ CONTENT: [detailed rephrased content in HTML format here]
                         
                         # Save to database if requested
                         db_id = None
-                        if save_to_db and db is not None:
+                        if save_to_db:
                             blog_service = BlogService(db)
                             # Always use CRM database and posts collection for news
                             target_db_name = "CRM"  # News always goes to CRM database

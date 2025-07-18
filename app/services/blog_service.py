@@ -1026,18 +1026,10 @@ IMPORTANT: Do not create any image tags or references to images that don't exist
     ) -> bool:
         """Save generated content to the database"""
         try:
-            # Set target database and collection based on content type
-            if content_type == "news_article":
-                target_db = "CRM"  # Always use CRM for news
-                target_collection = "posts"  # Always use posts collection
-                # Use environment variable for news target URL
-                target_db_uri = os.getenv('NEWS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/CRM')
-            else:
-                target_db = target_db or "keywords"  # Keywords go to keywords database
-                target_collection = target_collection or "posts"  # Collection is always posts
-                # Use environment variable for keywords target URL
-                target_db_uri = os.getenv('KEYWORDS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/keywords')
-                
+            # Always use CRM for all content types
+            target_db = "CRM"
+            target_collection = "posts"
+            target_db_uri = os.getenv('NEWS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/CRM')
             author_id = author_id or ObjectId('683b3771a6b031d7d73735d7')
 
             print(f"💾 Starting database save operation for keyword: '{keyword}'")
