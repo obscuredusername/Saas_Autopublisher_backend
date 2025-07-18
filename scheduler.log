@@ -429,3 +429,7 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-07-18 21:33:28,487 - INFO - ✅ Content scheduler stopped successfully
 2025-07-18 21:34:09,151 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-07-18 21:34:55,934 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 22:32:17,960 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-18 22:32:40,556 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 22:51:00,598 - INFO - 🛑 Background scheduler stopped
+2025-07-18 22:51:00,599 - INFO - ✅ Content scheduler stopped successfully

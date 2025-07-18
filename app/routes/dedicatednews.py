@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Query, Body, HTTPException
+from fastapi import APIRouter, Query, Body, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from typing import Dict, Literal
 from app.services.dedicatednews_service import DedicatedNewsService
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 router = APIRouter(prefix="/news", tags=["DedicatedNews"])
+
+async def get_db(request: Request) -> AsyncIOMotorDatabase:
+    """Dependency to get database instance"""
+    return request.app.state.db
 
 class NewsScheduleRequest(BaseModel):
     categories: Dict[Literal["finance", "business", "fashion", "news", "lifestyle", "world"], int] = Field(..., example={"finance": 4, "business": 2, "fashion": 3, "lifestyle": 2, "world": 1})
@@ -41,7 +46,8 @@ async def get_dedicated_news(
 
 @router.post("/schedule")
 async def schedule_rotating_news(
-    payload: NewsScheduleRequest
+    payload: NewsScheduleRequest,
+    db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     """
     Schedule news posts for multiple categories in a rotating, interleaved fashion.
@@ -53,7 +59,7 @@ async def schedule_rotating_news(
     source = payload.source
     service = DedicatedNewsService()
     if source == "google":
-        result = await service.schedule_rotating_google_news(categories, language, country)
+        result = await service.schedule_rotating_google_news(categories, language, country, db=db)
     else:
-        result = await service.schedule_rotating_yahoo_news(categories, language, country)
+        result = await service.schedule_rotating_yahoo_news(categories, language, country, db=db)
     return JSONResponse(content=result) 
