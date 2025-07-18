@@ -325,6 +325,8 @@ CONTENT: [detailed rephrased content in HTML format here]
                         # Save to database if requested
                         db_id = None
                         if save_to_db:
+                            print(f"[DEBUG] Attempting to save generated news post to database for article: {original_title}")
+                            print(f"[DEBUG] Target DB: CRM, Collection: posts (news always goes to CRM.posts)")
                             blog_service = BlogService(db)
                             # Always use CRM database and posts collection for news
                             target_db_name = "CRM"  # News always goes to CRM database
@@ -363,6 +365,7 @@ CONTENT: [detailed rephrased content in HTML format here]
                                 author_id=author_id,
                                 scheduled_at=scheduled_time
                             )
+                            print(f"[DEBUG] Save to database result for article '{original_title}': db_id={db_id}")
                             if db_id:
                                 print(f"✅ Saved to database successfully (ID: {db_id})")
                             else:
