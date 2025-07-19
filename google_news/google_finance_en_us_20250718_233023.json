@@ -1,0 +1,19 @@
+{
+  "totalArticles": 270848,
+  "articles": [
+    {
+      "id": "06d3aacd2722a54423b7f8a1806feb10",
+      "title": "Apple sues YouTuber who leaked iOS 26’s new “Liquid Glass” software redesign",
+      "description": "YouTuber claims to “have receipts” disproving Apple’s allegations.",
+      "content": "In January, YouTuber Jon Prosser posted a video to his Front Page Tech channel that claimed to be “your very first look at iOS 19,” the operating system that Apple would announce as iOS 26 a few months later.\nThough Prosser claimed he “could not show... [1435 chars]",
+      "url": "https://arstechnica.com/gadgets/2025/07/apple-sues-youtuber-who-leaked-ios-26s-new-liquid-glass-software-redesign/",
+      "image": "https://cdn.arstechnica.net/wp-content/uploads/2025/07/IMG_0234-1152x648.jpeg",
+      "publishedAt": "2025-07-18T16:23:02Z",
+      "source": {
+        "id": "344add8dabb753d03641ce9f246787ad",
+        "name": "Ars Technica",
+        "url": "https://arstechnica.com"
+      }
+    }
+  ]
+}

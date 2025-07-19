@@ -15,6 +15,8 @@ celery_app = Celery(
     backend=MONGODB_BACKEND
 )
 
+# (Removed custom beat_scheduler line to use default PersistentScheduler)
+
 # Celery Beat Schedule Configuration
 celery_app.conf.beat_schedule = {
     'publish-pending-posts-every-minute': {

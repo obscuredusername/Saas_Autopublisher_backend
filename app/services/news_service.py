@@ -56,7 +56,8 @@ class NewsService:
         # Supported countries by NewsAPI (ISO 3166-1 alpha-2 codes)
         # These are the exact country codes that NewsAPI accepts
         self.supported_countries = [
-            'ae', 'ar', 'at', 'au', 'be', 'bg', 'br', 'ca', 'ch', 'cn', 'co', 'cu', 'cz', 'de', 'eg', 'fr', 'gb', 'gr', 'hk', 'hu', 'id', 'ie', 'il', 'in', 'it', 'jp', 'kr', 'lt', 'lv', 'ma', 'mx', 'my', 'ng', 'nl', 'no', 'nz', 'ph', 'pl', 'pt', 'ro', 'rs', 'ru', 'sa', 'se', 'sg', 'si', 'sk', 'th', 'tr', 'tw', 'ua', 'us', 've', 'za'
+            'ae', 'ar', 'at', 'au', 'be', 'bg', 'br', 'ca', 'ch', 'cn', 'co', 'cu', 'cz', 'de', 'eg', 'fr', 'gb', 'gr', 'hk', 'hu', 'id', 'ie', 'il', 'in', 'it', 'jp', 'kr', 'lt', 
+            'lv', 'ma', 'mx', 'my', 'ng', 'nl', 'no', 'nz', 'ph', 'pl', 'pt', 'ro', 'rs', 'ru', 'sa', 'se', 'sg', 'si', 'sk', 'th', 'tr', 'tw', 'ua', 'us', 've', 'za'
         ]
 
     async def get_news_scrapped(self, country, language, category, db=None, user_email="news@system.com"):
@@ -178,13 +179,11 @@ class NewsService:
             generated_posts = []
             
             # --- NEW ROTATION LOGIC ---
-            category_limits = {'finance': 4, 'business': 2, 'fashion': 3}
             start_time = datetime.datetime.now(datetime.timezone.utc).replace(hour=8, minute=0, second=0, microsecond=0)
-            schedule = generate_rotating_schedule(start_time, category_limits, default_gap_minutes=60)
-            # Only use as many scraped_results as needed
-            schedule = schedule[:len(scraped_results)]
-            for i, (cat, scheduled_time) in enumerate(schedule):
-                article = scraped_results[i]
+            gap_minutes = 60  # Default gap between posts
+            for i, article in enumerate(scraped_results):
+                cat = article.get('category', category)
+                scheduled_time = start_time + datetime.timedelta(minutes=i * gap_minutes)
                 try:
                     print(f"📝 Generating blog post {i+1}/{len(scraped_results)} from: {article.get('title', 'No title')}")
                     
@@ -323,53 +322,77 @@ CONTENT: [detailed rephrased content in HTML format here]
                         print(f"💾 Saved rephrased content to: {filepath}")
                         
                         # Save to database if requested
-                        db_id = None
                         if save_to_db:
-                            print(f"[DEBUG] Attempting to save generated news post to database for article: {original_title}")
-                            print(f"[DEBUG] Target DB: CRM, Collection: posts (news always goes to CRM.posts)")
-                            blog_service = BlogService(db)
-                            # Always use CRM database and posts collection for news
-                            target_db_name = "CRM"  # News always goes to CRM database
-                            target_collection = "posts"  # Collection is always posts
-                            author_id = ObjectId('6872543bb13173a4a942d3c4')
-                            # Find category ID for cat
-                            categories = await blog_service.get_all_categories()
-                            cat_id = None
-                            for c in categories:
-                                if c['name'].strip().lower() == cat:
-                                    cat_id = ObjectId(c['_id'])
-                                    break
-                            db_id = await blog_service.save_generated_content(
-                                keyword=article.get('title', ''),
-                                content=content_with_images,
-                                word_count=len(rephrased_content.split()),
-                                language=language,
-                                category_ids=[cat_id] if cat_id else [],
-                                tag_ids=[],
-                                image_urls=image_urls,
-                                metadata={
-                                    'source_article': article.get('url', ''),
-                                    'original_title': article.get('title', ''),
-                                    'rephrased_title': rephrased_title,
-                                    'news_category': cat,
-                                    'generated_from_news': True,
-                                    'original_content_length': original_length,
-                                    'generated_content_length': len(rephrased_content),
-                                    'generated_images_count': len(image_urls)
-                                },
-                                user_email=user_email,
-                                content_type="news_article",
-                                post_index=0,  # Not used for scheduling now
-                                target_db=target_db_name,
-                                target_collection=target_collection,
-                                author_id=author_id,
-                                scheduled_at=scheduled_time
-                            )
-                            print(f"[DEBUG] Save to database result for article '{original_title}': db_id={db_id}")
-                            if db_id:
-                                print(f"✅ Saved to database successfully (ID: {db_id})")
-                            else:
-                                print(f"❌ Failed to save to database for news post: {original_title}")
+                            try:
+                                # --- Directly save to broker.posts ---
+                                from motor.motor_asyncio import AsyncIOMotorClient
+                                now = datetime.datetime.now(datetime.timezone.utc)
+                                scheduled_at_time = scheduled_time if scheduled_time is not None else now
+                                # Compose the document (copying from BlogService.save_generated_content)
+                                title = rephrased_title
+                                slug = re.sub(r'[^a-z0-9\s-]', '', title.lower().strip())
+                                slug = re.sub(r'[-\s]+', '-', slug)
+                                content_doc = {
+                                    "title": title,
+                                    "content": content_with_images,
+                                    "slug": slug,
+                                    "excerpt": title,
+                                    "status": "pending",
+                                    "categoryIds": [ObjectId("6872543bb13173a4a942d3c4")],
+                                    "tagIds": [],
+                                    "authorId": None,
+                                    "createdAt": now,
+                                    "updatedAt": now,
+                                    "__v": 0,
+                                    "canonicalUrl": "",
+                                    "featured": False,
+                                    "focusKeyword": article.get('title', ''),
+                                    "metaDescription": title,
+                                    "metaImage": image_urls[0] if image_urls else "http://localhost:3000/dashboard/posts/new",
+                                    "metaKeywords": article.get('title', ''),
+                                    "metaTitle": title,
+                                    "ogDescription": title,
+                                    "ogTitle": title,
+                                    "ogType": "article",
+                                    "readingTime": len(rephrased_content.split()) // 200,
+                                    "twitterCard": "summary_large_image",
+                                    "twitterDescription": title,
+                                    "user_email": user_email,
+                                    "content_type": "news_article",
+                                    "image_urls": image_urls,
+                                    "metadata": {
+                                        'source_article': article.get('url', ''),
+                                        'original_title': article.get('title', ''),
+                                        'rephrased_title': rephrased_title,
+                                        'news_category': cat,
+                                        'generated_from_news': True,
+                                        'original_content_length': original_length,
+                                        'generated_content_length': len(rephrased_content),
+                                        'generated_images_count': len(image_urls)
+                                    },
+                                    "word_count": len(rephrased_content.split()),
+                                    "language": language,
+                                    "scheduledAt": scheduled_at_time,
+                                    "target_db": "CRM",
+                                    "target_collection": "posts",
+                                    "target_url": os.getenv('NEWS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/CRM')
+                                }
+                                mongo_url = 'mongodb+srv://zubairisworking:Ki66bNWmpi70Y9Ql@cluster0.dtdmgdx.mongodb.net/broker?retryWrites=true&w=majority'
+                                client = AsyncIOMotorClient(mongo_url)
+                                db_broker = client['broker']
+                                collection = db_broker['posts']
+                                result = await collection.insert_one(content_doc)
+                                if result.inserted_id:
+                                    print(f"   ✅ Content saved successfully to broker.posts with ID: {result.inserted_id}")
+                                    print(f"   📅 Will be published to CRM.posts at: {scheduled_at_time}")
+                                else:
+                                    print(f"   ❌ Failed to save content to broker database")
+                                client.close()
+                            except Exception as e:
+                                print(f"[ERROR] Exception in direct broker.posts save: {e}")
+                                import traceback
+                                traceback.print_exc()
+                        # End direct save
                         
                         generated_posts.append({
                             'title': rephrased_title,
@@ -381,8 +404,7 @@ CONTENT: [detailed rephrased content in HTML format here]
                             'status': 'success',
                             'content': content_with_images,
                             'image_urls': image_urls,
-                            'file_path': filepath,
-                            'db_id': str(db_id) if db_id else None
+                            'file_path': filepath
                         })
                         
                         print(f"✅ Generated blog post: {rephrased_title}")
