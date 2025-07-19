@@ -143,7 +143,7 @@ class NewsService:
             # Generate blog posts from scraped content
             generated_posts = []
             if scraped_results:
-                generated_posts = await self.generate_blog_posts_from_news(scraped_results, category, language, db, user_email, save_to_db=True)
+                generated_posts = await self.generate_blog_posts_from_news(scraped_results, category, language, db, user_email)
                 # Manual scheduling removed - now handled by Celery Beat based on scheduledAt field
             
             # Delete the scraped JSON file since it's not needed
@@ -160,7 +160,7 @@ class NewsService:
             traceback.print_exc()
             return None, "1.1"
 
-    async def generate_blog_posts_from_news(self, scraped_results, category, language, db, user_email, save_to_db=True):
+    async def generate_blog_posts_from_news(self, scraped_results, category, language, db, user_email):
         """Generate blog posts from scraped news articles using direct content rephrasing and image generation."""
         try:
             print(f"🤖 Starting blog generation for {len(scraped_results)} news articles...")
@@ -321,81 +321,78 @@ CONTENT: [detailed rephrased content in HTML format here]
                             f.write(html_content)
                         print(f"💾 Saved rephrased content to: {filepath}")
                         
-                        # Save to database if requested
-                        if save_to_db:
-                            try:
-                                # --- Directly save to broker.posts ---
-                                from motor.motor_asyncio import AsyncIOMotorClient
-                                now = datetime.datetime.now(datetime.timezone.utc)
-                                scheduled_at_time = scheduled_time if scheduled_time is not None else now
-                                # Compose the document (copying from BlogService.save_generated_content)
-                                title = rephrased_title
-                                slug = re.sub(r'[^a-z0-9\s-]', '', title.lower().strip())
-                                slug = re.sub(r'[-\s]+', '-', slug)
-                                content_doc = {
-                                    "title": title,
-                                    "content": content_with_images,
-                                    "slug": slug,
-                                    "excerpt": title,
-                                    "status": "pending",
-                                    "categoryIds": [ObjectId("6872543bb13173a4a942d3c4")],
-                                    "tagIds": [],
-                                    "authorId": None,
-                                    "createdAt": now,
-                                    "updatedAt": now,
-                                    "__v": 0,
-                                    "canonicalUrl": "",
-                                    "featured": False,
-                                    "focusKeyword": article.get('title', ''),
-                                    "metaDescription": title,
-                                    "metaImage": image_urls[0] if image_urls else "http://localhost:3000/dashboard/posts/new",
-                                    "metaKeywords": article.get('title', ''),
-                                    "metaTitle": title,
-                                    "ogDescription": title,
-                                    "ogTitle": title,
-                                    "ogType": "article",
-                                    "readingTime": len(rephrased_content.split()) // 200,
-                                    "twitterCard": "summary_large_image",
-                                    "twitterDescription": title,
-                                    "user_email": user_email,
-                                    "content_type": "news_article",
-                                    "image_urls": image_urls,
-                                    "metadata": {
-                                        'source_article': article.get('url', ''),
-                                        'original_title': article.get('title', ''),
-                                        'rephrased_title': rephrased_title,
-                                        'news_category': cat,
-                                        'generated_from_news': True,
-                                        'original_content_length': original_length,
-                                        'generated_content_length': len(rephrased_content),
-                                        'generated_images_count': len(image_urls)
-                                    },
-                                    "word_count": len(rephrased_content.split()),
-                                    "language": language,
-                                    "scheduledAt": scheduled_at_time,
-                                    "target_db": "CRM",
-                                    "target_collection": "posts",
-                                    "target_url": os.getenv('NEWS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/CRM')
-                                }
-                                mongo_url = 'mongodb+srv://zubairisworking:Ki66bNWmpi70Y9Ql@cluster0.dtdmgdx.mongodb.net/broker?retryWrites=true&w=majority'
-                                client = AsyncIOMotorClient(mongo_url)
-                                db_broker = client['broker']
-                                collection = db_broker['posts']
-                                print("\n--- Payload to be inserted into broker.posts ---")
-                                print(json.dumps(content_doc, default=str, indent=2, ensure_ascii=False))
-                                print("--- End Payload ---\n")
-                                result = await collection.insert_one(content_doc)
-                                if result.inserted_id:
-                                    print(f"   ✅ Content saved successfully to broker.posts with ID: {result.inserted_id}")
-                                    print(f"   📅 Will be published to CRM.posts at: {scheduled_at_time}")
-                                else:
-                                    print(f"   ❌ Failed to save content to broker database")
-                                client.close()
-                            except Exception as e:
-                                print(f"[ERROR] Exception in direct broker.posts save: {e}")
-                                import traceback
-                                traceback.print_exc()
-                        # End direct save
+                        # Save to database (always)
+                        try:
+                            # --- Directly save to broker.posts ---
+                            from motor.motor_asyncio import AsyncIOMotorClient
+                            now = datetime.datetime.now(datetime.timezone.utc)
+                            scheduled_at_time = scheduled_time if scheduled_time is not None else now
+                            title = rephrased_title
+                            slug = re.sub(r'[^a-z0-9\s-]', '', title.lower().strip())
+                            slug = re.sub(r'[-\s]+', '-', slug)
+                            content_doc = {
+                                "title": title,
+                                "content": content_with_images,
+                                "slug": slug,
+                                "excerpt": title,
+                                "status": "pending",
+                                "categoryIds": [ObjectId("6872543bb13173a4a942d3c4")],
+                                "tagIds": [],
+                                "authorId": None,
+                                "createdAt": now,
+                                "updatedAt": now,
+                                "__v": 0,
+                                "canonicalUrl": "",
+                                "featured": False,
+                                "focusKeyword": article.get('title', ''),
+                                "metaDescription": title,
+                                "metaImage": image_urls[0] if image_urls else "http://localhost:3000/dashboard/posts/new",
+                                "metaKeywords": article.get('title', ''),
+                                "metaTitle": title,
+                                "ogDescription": title,
+                                "ogTitle": title,
+                                "ogType": "article",
+                                "readingTime": len(rephrased_content.split()) // 200,
+                                "twitterCard": "summary_large_image",
+                                "twitterDescription": title,
+                                "user_email": user_email,
+                                "content_type": "news_article",
+                                "image_urls": image_urls,
+                                "metadata": {
+                                    'source_article': article.get('url', ''),
+                                    'original_title': article.get('title', ''),
+                                    'rephrased_title': rephrased_title,
+                                    'news_category': cat,
+                                    'generated_from_news': True,
+                                    'original_content_length': original_length,
+                                    'generated_content_length': len(rephrased_content),
+                                    'generated_images_count': len(image_urls)
+                                },
+                                "word_count": len(rephrased_content.split()),
+                                "language": language,
+                                "scheduledAt": scheduled_at_time,
+                                "target_db": "CRM",
+                                "target_collection": "posts",
+                                "target_url": os.getenv('NEWS_TARGET_DB_URI', 'mongodb+srv://cryptoanalysis45:Zz5e0HLdDoF9SJXA@cluster0.zqdhkxn.mongodb.net/CRM')
+                            }
+                            mongo_url = 'mongodb+srv://zubairisworking:Ki66bNWmpi70Y9Ql@cluster0.dtdmgdx.mongodb.net/broker?retryWrites=true&w=majority'
+                            client = AsyncIOMotorClient(mongo_url)
+                            db_broker = client['broker']
+                            collection = db_broker['posts']
+                            print("\n--- Payload to be inserted into broker.posts ---")
+                            print(json.dumps(content_doc, default=str, indent=2, ensure_ascii=False))
+                            print("--- End Payload ---\n")
+                            result = await collection.insert_one(content_doc)
+                            if result.inserted_id:
+                                print(f"   ✅ Content saved successfully to broker.posts with ID: {result.inserted_id}")
+                                print(f"   📅 Will be published to CRM.posts at: {scheduled_at_time}")
+                            else:
+                                print(f"   ❌ Failed to save content to broker database (no inserted_id)")
+                            client.close()
+                        except Exception as e:
+                            print(f"[ERROR] Exception in direct broker.posts save: {e}")
+                            import traceback
+                            traceback.print_exc()
                         
                         generated_posts.append({
                             'title': rephrased_title,
