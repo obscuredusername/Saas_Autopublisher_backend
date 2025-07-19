@@ -381,6 +381,9 @@ CONTENT: [detailed rephrased content in HTML format here]
                                 client = AsyncIOMotorClient(mongo_url)
                                 db_broker = client['broker']
                                 collection = db_broker['posts']
+                                print("\n--- Payload to be inserted into broker.posts ---")
+                                print(json.dumps(content_doc, default=str, indent=2, ensure_ascii=False))
+                                print("--- End Payload ---\n")
                                 result = await collection.insert_one(content_doc)
                                 if result.inserted_id:
                                     print(f"   ✅ Content saved successfully to broker.posts with ID: {result.inserted_id}")
