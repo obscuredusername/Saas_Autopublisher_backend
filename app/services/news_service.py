@@ -290,37 +290,7 @@ CONTENT: [detailed rephrased content in HTML format here]
                         # Insert natural backlink
                         content_with_images = insert_natural_backlink(content_with_images, article.get('url', ''), original_title)
 
-                        # Save to file
-                        safe_title = re.sub(r'[^a-zA-Z0-9\s-]', '', original_title)[:50]
-                        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')
-                        filename = f"news_{i+1}_{safe_title}_{timestamp}.html"
-                        filepath = os.path.join(news_dir, filename)
-                        
-                        # Create clean HTML content without metadata
-                        html_content = f"""
-<!DOCTYPE html>
-<html lang="{language}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{rephrased_title}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }}
-        img {{ max-width: 100%; height: auto; margin: 20px 0; }}
-        h1, h2, h3 {{ color: #333; }}
-        p {{ margin-bottom: 15px; }}
-    </style>
-</head>
-<body>
-    {content_with_images}
-</body>
-</html>
-"""
-                        
-                        with open(filepath, 'w', encoding='utf-8') as f:
-                            f.write(html_content)
-                        print(f"💾 Saved rephrased content to: {filepath}")
-                        
+                        # Remove HTML file saving (do not save to file)
                         # Save to database (always)
                         try:
                             # --- Directly save to broker.posts ---
@@ -393,6 +363,14 @@ CONTENT: [detailed rephrased content in HTML format here]
                             print(f"[ERROR] Exception in direct broker.posts save: {e}")
                             import traceback
                             traceback.print_exc()
+                        # End direct save
+                        # Delete any temporary HTML file if it exists
+                        try:
+                            if 'filepath' in locals() and os.path.exists(filepath):
+                                os.remove(filepath)
+                                print(f"🗑️ Deleted temporary HTML file: {filepath}")
+                        except Exception as e:
+                            print(f"⚠️ Could not delete temporary HTML file: {e}")
                         
                         generated_posts.append({
                             'title': rephrased_title,

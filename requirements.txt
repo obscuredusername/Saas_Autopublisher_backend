@@ -6,6 +6,7 @@ pymongo
 requests
 httpx
 bs4
+beautifulsoup4
 pillow
 aiohttp
 celery
@@ -15,5 +16,9 @@ pyjwt
 scikit-learn
 numpy
 langchain
+langchain-community
 openai
-newsapi-python 
+newsapi-python
+email-validator
+
+x7Fbgpi:k'12gr7
