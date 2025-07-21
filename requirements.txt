@@ -20,5 +20,3 @@ langchain-community
 openai
 newsapi-python
 email-validator
-
-x7Fbgpi:k'12gr7

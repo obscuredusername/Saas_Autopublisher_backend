@@ -29,5 +29,8 @@ EXPOSE 8000
 # Create directories for temporary files
 RUN mkdir -p /app/scraped_data /app/news /app/google_news
 
-# Give permissions to create files
-RUN chmod -R 777 /app/scraped_data /app/news /app/google_news 
+# Give permissions to create files (more secure)
+RUN chmod -R 755 /app/scraped_data /app/news /app/google_news
+
+# Add default command
+CMD ["python", "main.py"] 
