@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main
+      - main  # Trigger on push to main branch
 
 jobs:
   deploy:
@@ -18,19 +18,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_KEY }}
 
-      - name: Deploy to VPS
+      - name: Copy project files to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p ${{ secrets.APP_DIR }}"
+          rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.APP_DIR }}
+
+      - name: Deploy Docker container
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd /var/www/Saas_AutoPublisher/backend
-            git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt --break-system-packages
-
-            # Restart or start the FastAPI app with PM2
-            pm2 restart saas-api || \
-              pm2 start venv/bin/uvicorn --interpreter python3 --name saas-api -- app:app --host 0.0.0.0 --port 8000
-
-            # Optionally reload nginx
-            sudo systemctl reload nginx
+            cd ${{ secrets.APP_DIR }}
+            docker-compose down
+            docker-compose up -d --build
           EOF
-
