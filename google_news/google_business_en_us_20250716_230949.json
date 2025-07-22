@@ -1,0 +1,19 @@
+{
+  "totalArticles": 273508,
+  "articles": [
+    {
+      "id": "868418f436802a72491123aa19c105b2",
+      "title": "Stellantis abandons hydrogen fuel cell development",
+      "description": "Fast filling times are seductive, but they don’t compensate for H2’s many drawbacks.",
+      "content": "To paraphrase Mean Girls, \"stop trying to make hydrogen happen.\"\nFor some years now, detractors of battery electric vehicles have held up hydrogen as a clean fuel panacea. That sometimes refers to hydrogen combustion engines, but more often, it's hyd... [1053 chars]",
+      "url": "https://arstechnica.com/cars/2025/07/stellantis-abandons-hydrogen-fuel-cell-development/",
+      "image": "https://cdn.arstechnica.net/wp-content/uploads/2025/07/2409182-0vg1jjq9ua-whr-1152x648.webp",
+      "publishedAt": "2025-07-16T14:51:59Z",
+      "source": {
+        "id": "344add8dabb753d03641ce9f246787ad",
+        "name": "Ars Technica",
+        "url": "https://arstechnica.com"
+      }
+    }
+  ]
+}

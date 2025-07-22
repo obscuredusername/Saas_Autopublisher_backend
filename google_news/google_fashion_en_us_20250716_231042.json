@@ -1,0 +1,19 @@
+{
+  "totalArticles": 258258,
+  "articles": [
+    {
+      "id": "a850669b0af67ef07a14342c71d046d4",
+      "title": "Mars rock: Red meteorite sells for $4.3 million at auction",
+      "description": "A meteorite that is the largest known piece of Mars on Earth sold at a Sotheby’s New York auction Wednesday.",
+      "content": "CNN —\nA meteorite that is the largest known piece of Mars on Earth has sold for a hammer price of $4.3 million to an anonymous bidder at a Sotheby’s New York auction Wednesday.\nKnown as NWA 16788, the meteorite weighs 54 pounds (24.5 kilograms), mass... [3272 chars]",
+      "url": "https://www.cnn.com/2025/07/16/science/mars-rock-auction-sold",
+      "image": "https://media.cnn.com/api/v1/images/stellar/prod/nwa-16788-courtesy-of-sotheby-s-1.jpg?c=16x9&q=w_800,c_fill",
+      "publishedAt": "2025-07-16T16:58:00Z",
+      "source": {
+        "id": "b7f8938851261c8403f75f40eb1d8645",
+        "name": "CNN",
+        "url": "https://www.cnn.com"
+      }
+    }
+  ]
+}

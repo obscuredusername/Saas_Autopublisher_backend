@@ -1,0 +1,5 @@
+# Image generation prompt template
+# Use {prompt} as a placeholder
+Generate an image based on the following description:
+{prompt}
+# Requirements: The image should be realistic and match the blog context. 

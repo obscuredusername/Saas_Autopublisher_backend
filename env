@@ -1,0 +1,34 @@
+# MongoDB Configuration
+MONGODB_URL=mongodb://localhost:27017
+TARGET_DB_URI=mongodb://localhost:27017
+
+# Database Names
+SOURCE_DB=scraper_db
+TARGET_DB=CRM
+SOURCE_COLLECTION=generated_content
+TARGET_COLLECTION=posts
+
+# JWT Configuration
+JWT_SECRET_KEY=ZBz-yL9CWyy6NWx2dlTY6SCeSik53sG_4VCrTSDMbcc
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Redis Configuration (for Celery)
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+# OpenAI Configuration
+OPENAI_API_KEY=
+
+# News API Configuration
+NEWS_API_KEY=
+
+# Environment
+ENVIRONMENT=development
+DEBUG=true
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000

@@ -1,0 +1,453 @@
+2025-07-13 05:09:01,590 - INFO - 🚀 Background scheduler started
+2025-07-13 05:09:01,590 - INFO - ✅ Content scheduler started successfully
+2025-07-13 05:09:01,593 - INFO - ✅ Database connections initialized
+2025-07-13 05:09:01,593 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 05:09:01,593 - INFO - 📊 Target: CRM.posts
+2025-07-13 05:09:01,593 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 05:09:01,593 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 05:09:03,824 - INFO - ✅ READY TO PUBLISH: L'Épice de Glace: Découvrez les Saveurs Glaciales...
+2025-07-13 05:09:03,825 - INFO - [PUBLISH LOG] 2025-07-13 00:09:03 UTC - Attempting to publish: L'Épice de Glace: Découvrez les Saveurs Glaciales
+2025-07-13 05:09:03,825 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 05:09:03,825 - INFO - ================================================================================
+2025-07-13 05:09:03,826 - INFO - Content: {'title': "L'Épice de Glace: Découvrez les Saveurs Glaciales", 'content': '<article>\n<h2>L\'Épice de Glace: Découvrez les Saveurs Glaciales</h2>\n\n<h3>Histoire de l\'Épice de Glace</h3>\n<p><img src...
+2025-07-13 05:09:03,826 - INFO - ================================================================================
+2025-07-13 05:09:05,098 - INFO - ✅ Content saved with ID: 6872f91fbf3da755a2d73a68
+2025-07-13 05:09:05,301 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-13 00:09:03 UTC]
+
+2025-07-13 05:09:05,301 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 06:03:25,110 - INFO - 🛑 Scheduler stop requested
+2025-07-13 06:03:25,320 - INFO - ✅ Database connections closed
+2025-07-13 06:03:25,321 - INFO - 🛑 Background scheduler stopped
+2025-07-13 06:03:25,321 - INFO - ✅ Content scheduler stopped successfully
+2025-07-13 06:03:32,101 - INFO - 🚀 Background scheduler started
+2025-07-13 06:03:32,101 - INFO - ✅ Content scheduler started successfully
+2025-07-13 06:03:32,104 - INFO - ✅ Database connections initialized
+2025-07-13 06:03:32,105 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 06:03:32,105 - INFO - 📊 Target: CRM.posts
+2025-07-13 06:03:32,105 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 06:03:32,105 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 06:03:33,784 - INFO - ✅ READY TO PUBLISH: Les secrets de beauté de Huda Kattan révélés...
+2025-07-13 06:03:33,785 - INFO - [PUBLISH LOG] 2025-07-13 01:03:33 UTC - Attempting to publish: Les secrets de beauté de Huda Kattan révélés
+2025-07-13 06:03:33,785 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 06:03:33,785 - INFO - ================================================================================
+2025-07-13 06:03:33,786 - INFO - Content: {'title': 'Les secrets de beauté de Huda Kattan révélés', 'content': '<article>\n<h2>Les secrets de beauté de Huda Kattan révélés</h2>\n\n<h3>Le parcours de Huda Kattan</h3>\n<p><img src="https://hand...
+2025-07-13 06:03:33,786 - INFO - ================================================================================
+2025-07-13 06:03:34,945 - INFO - ✅ Content saved with ID: 687305e57b323d23e645fd91
+2025-07-13 06:03:35,089 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-13 01:03:33 UTC]
+
+2025-07-13 06:03:35,090 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 06:03:58,377 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-13 06:10:04,176 - INFO - 🛑 Scheduler stop requested
+2025-07-13 06:10:04,400 - INFO - ✅ Database connections closed
+2025-07-13 06:10:04,400 - INFO - 🛑 Background scheduler stopped
+2025-07-13 06:10:04,400 - INFO - ✅ Content scheduler stopped successfully
+2025-07-13 06:10:10,249 - INFO - 🚀 Background scheduler started
+2025-07-13 06:10:10,250 - INFO - ✅ Content scheduler started successfully
+2025-07-13 06:10:10,254 - INFO - ✅ Database connections initialized
+2025-07-13 06:10:10,255 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 06:10:10,255 - INFO - 📊 Target: CRM.posts
+2025-07-13 06:10:10,255 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 06:10:10,255 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 06:10:12,156 - INFO - ✅ READY TO PUBLISH: Exploration des régions reculées de la France...
+2025-07-13 06:10:12,156 - INFO - [PUBLISH LOG] 2025-07-13 01:10:12 UTC - Attempting to publish: Exploration des régions reculées de la France
+2025-07-13 06:10:12,157 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 06:10:12,157 - INFO - ================================================================================
+2025-07-13 06:10:12,158 - INFO - Content: {'title': 'Exploration des régions reculées de la France', 'content': '<article>\n<h2>Exploration des régions reculées de la France</h2>\n\n<h3>Présentation des régions à explorer</h3>\n<p><img src="h...
+2025-07-13 06:10:12,158 - INFO - ================================================================================
+2025-07-13 06:10:13,073 - INFO - ✅ Content saved with ID: 687307747de0f06da8862697
+2025-07-13 06:10:13,216 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-13 01:10:12 UTC]
+
+2025-07-13 06:10:13,217 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 06:35:30,068 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-13 15:53:51,732 - INFO - 🚀 Background scheduler started
+2025-07-13 15:53:51,733 - INFO - ✅ Content scheduler started successfully
+2025-07-13 15:53:51,742 - INFO - ✅ Database connections initialized
+2025-07-13 15:53:51,743 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 15:53:51,744 - INFO - 📊 Target: CRM.posts
+2025-07-13 15:53:51,744 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 15:53:51,745 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 15:53:54,025 - INFO - ✅ READY TO PUBLISH: Le monde de la musique d'Hansi Hinterseer: Une immersion dans la vie d'une légende...
+2025-07-13 15:53:54,027 - INFO - [PUBLISH LOG] 2025-07-13 10:53:54 UTC - Attempting to publish: Le monde de la musique d'Hansi Hinterseer: Une immersion dans la vie d'une légende
+2025-07-13 15:53:54,027 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 15:53:54,028 - INFO - ================================================================================
+2025-07-13 15:53:54,029 - INFO - Content: {'title': "Le monde de la musique d'Hansi Hinterseer: Une immersion dans la vie d'une légende", 'content': '<article>\n<h2>Le monde de la musique d\'Hansi Hinterseer: Une immersion dans la vie d\'une ...
+2025-07-13 15:53:54,029 - INFO - ================================================================================
+2025-07-13 15:53:55,432 - INFO - ✅ Content saved with ID: 687390426c52fd9ac02e5838
+2025-07-13 15:53:55,602 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-13 10:53:54 UTC]
+
+2025-07-13 15:53:55,603 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 15:55:16,330 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-13 16:03:26,937 - INFO - 🛑 Scheduler stop requested
+2025-07-13 16:03:27,254 - INFO - ✅ Database connections closed
+2025-07-13 16:03:27,255 - INFO - 🛑 Background scheduler stopped
+2025-07-13 16:03:27,255 - INFO - ✅ Content scheduler stopped successfully
+2025-07-13 16:03:33,175 - INFO - 🚀 Background scheduler started
+2025-07-13 16:03:33,175 - INFO - ✅ Content scheduler started successfully
+2025-07-13 16:03:33,179 - INFO - ✅ Database connections initialized
+2025-07-13 16:03:33,179 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 16:03:33,179 - INFO - 📊 Target: CRM.posts
+2025-07-13 16:03:33,180 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 16:03:33,180 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 16:03:34,841 - INFO - ✅ READY TO PUBLISH: Les Secrets de la Cuisine Française Dévoilés...
+2025-07-13 16:03:34,841 - INFO - [PUBLISH LOG] 2025-07-13 11:03:34 UTC - Attempting to publish: Les Secrets de la Cuisine Française Dévoilés
+2025-07-13 16:03:34,841 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 16:03:34,841 - INFO - ================================================================================
+2025-07-13 16:03:34,842 - INFO - Content: {'title': 'Les Secrets de la Cuisine Française Dévoilés', 'content': '<article>\n<h2>Les Secrets de la Cuisine Française Dévoilés</h2>\n\n<p><img src="https://handicap-internatioanl.fr/images/baac682d...
+2025-07-13 16:03:34,842 - INFO - ================================================================================
+2025-07-13 16:03:36,125 - WARNING - ⚠️ Duplicate slug detected. Marking as published without inserting.
+2025-07-13 16:03:36,272 - INFO - ✅ Published content (status updated in source DB). (Duplicate slug) (Used UTC now) [PUBLISHED AT: 2025-07-13 11:03:34 UTC]
+
+2025-07-13 16:03:36,272 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 16:10:48,351 - INFO - 🛑 Scheduler stop requested
+2025-07-13 16:10:48,563 - INFO - ✅ Database connections closed
+2025-07-13 16:10:48,563 - INFO - 🛑 Background scheduler stopped
+2025-07-13 16:10:48,564 - INFO - ✅ Content scheduler stopped successfully
+2025-07-13 16:10:53,683 - INFO - 🚀 Background scheduler started
+2025-07-13 16:10:53,683 - INFO - ✅ Content scheduler started successfully
+2025-07-13 16:10:53,688 - INFO - ✅ Database connections initialized
+2025-07-13 16:10:53,688 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-13 16:10:53,689 - INFO - 📊 Target: CRM.posts
+2025-07-13 16:10:53,689 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-13 16:10:53,689 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-13 16:10:55,542 - INFO - ✅ READY TO PUBLISH: La beauté intemporelle: Secrets de Gwendoline Hamon...
+2025-07-13 16:10:55,543 - INFO - [PUBLISH LOG] 2025-07-13 11:10:55 UTC - Attempting to publish: La beauté intemporelle: Secrets de Gwendoline Hamon
+2025-07-13 16:10:55,543 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-13 16:10:55,543 - INFO - ================================================================================
+2025-07-13 16:10:55,543 - INFO - Content: {'title': 'La beauté intemporelle: Secrets de Gwendoline Hamon', 'content': '<article>\n<h2>La beauté intemporelle: Secrets de Gwendoline Hamon</h2>\n\n<h3>Le Parcours de Gwendoline Hamon</h3>\n<table...
+2025-07-13 16:10:55,543 - INFO - ================================================================================
+2025-07-13 16:10:56,828 - INFO - ✅ Content saved with ID: 6873943f4d4314a03711de4b
+2025-07-13 16:10:57,013 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-13 11:10:55 UTC]
+
+2025-07-13 16:10:57,013 - INFO - ⏰ Next check in 150 minutes...
+2025-07-13 16:13:37,232 - INFO - 🛑 Scheduler stop requested
+2025-07-14 14:46:51,380 - INFO - 🚀 Background scheduler started
+2025-07-14 14:46:51,381 - INFO - ✅ Content scheduler started successfully
+2025-07-14 14:46:51,385 - INFO - ✅ Database connections initialized
+2025-07-14 14:46:51,386 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-14 14:46:51,386 - INFO - 📊 Target: CRM.posts
+2025-07-14 14:46:51,386 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-14 14:46:51,386 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-14 14:46:53,282 - INFO - ✅ READY TO PUBLISH: Le Monde de la Psychologie: Découvrez les Pensées Profondes avec Gérard Miller...
+2025-07-14 14:46:53,283 - INFO - [PUBLISH LOG] 2025-07-14 09:46:53 UTC - Attempting to publish: Le Monde de la Psychologie: Découvrez les Pensées Profondes avec Gérard Miller
+2025-07-14 14:46:53,283 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-14 14:46:53,283 - INFO - ================================================================================
+2025-07-14 14:46:53,283 - INFO - Content: {'title': 'Le Monde de la Psychologie: Découvrez les Pensées Profondes avec Gérard Miller', 'content': '<article>\n<h2>Le Monde de la Psychologie: Découvrez les Pensées Profondes avec Gérard Miller</h...
+2025-07-14 14:46:53,284 - INFO - ================================================================================
+2025-07-14 14:46:54,367 - INFO - ✅ Content saved with ID: 6874d20d966a9fd46c5b4888
+2025-07-14 14:46:54,543 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-14 09:46:53 UTC]
+
+2025-07-14 14:46:54,544 - INFO - ⏰ Next check in 150 minutes...
+2025-07-14 14:51:08,882 - INFO - 🛑 Scheduler stop requested
+2025-07-14 14:51:09,189 - INFO - ✅ Database connections closed
+2025-07-14 14:51:09,190 - INFO - 🛑 Background scheduler stopped
+2025-07-14 14:51:09,190 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 14:51:17,905 - INFO - 🚀 Background scheduler started
+2025-07-14 14:51:17,905 - INFO - ✅ Content scheduler started successfully
+2025-07-14 14:51:17,908 - INFO - ✅ Database connections initialized
+2025-07-14 14:51:17,908 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-14 14:51:17,908 - INFO - 📊 Target: CRM.posts
+2025-07-14 14:51:17,908 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-14 14:51:17,908 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-14 14:51:19,866 - INFO - ✅ READY TO PUBLISH: Les Secrets de la Photographie: Capturer l'Essence du Monde...
+2025-07-14 14:51:19,867 - INFO - [PUBLISH LOG] 2025-07-14 09:51:19 UTC - Attempting to publish: Les Secrets de la Photographie: Capturer l'Essence du Monde
+2025-07-14 14:51:19,867 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-14 14:51:19,867 - INFO - ================================================================================
+2025-07-14 14:51:19,868 - INFO - Content: {'title': "Les Secrets de la Photographie: Capturer l'Essence du Monde", 'content': '<article>\n<h2>Les Secrets de la Photographie: Capturer l\'Essence du Monde</h2>\n\n<h3>Introduction à la Photograp...
+2025-07-14 14:51:19,868 - INFO - ================================================================================
+2025-07-14 14:51:20,882 - INFO - ✅ Content saved with ID: 6874d31764910d62f0c51867
+2025-07-14 14:51:21,042 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-14 09:51:19 UTC]
+
+2025-07-14 14:51:21,042 - INFO - ⏰ Next check in 150 minutes...
+2025-07-14 14:51:38,966 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=technology&token=halwapuri1&lang=en&country=us&max=5 "HTTP/1.1 401 Unauthorized"
+2025-07-14 15:00:29,739 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=technology&token=halwapuri1&lang=en&country=us&max=5 "HTTP/1.1 401 Unauthorized"
+2025-07-14 15:02:21,123 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=technology&token=halwapuri1&lang=en&country=us&max=5 "HTTP/1.1 401 Unauthorized"
+2025-07-14 15:02:48,038 - INFO - 🛑 Scheduler stop requested
+2025-07-14 15:02:48,270 - INFO - ✅ Database connections closed
+2025-07-14 15:02:48,270 - INFO - 🛑 Background scheduler stopped
+2025-07-14 15:02:48,271 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 15:08:37,972 - INFO - 🚀 Background scheduler started
+2025-07-14 15:08:37,973 - INFO - ✅ Content scheduler started successfully
+2025-07-14 15:08:37,982 - INFO - ✅ Database connections initialized
+2025-07-14 15:08:37,982 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-14 15:08:37,983 - INFO - 📊 Target: CRM.posts
+2025-07-14 15:08:37,983 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-14 15:08:37,983 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-14 15:08:40,164 - INFO - ✅ READY TO PUBLISH: L'Art de la Photographie: Capturer l'Essence du Monde...
+2025-07-14 15:08:40,166 - INFO - [PUBLISH LOG] 2025-07-14 10:08:40 UTC - Attempting to publish: L'Art de la Photographie: Capturer l'Essence du Monde
+2025-07-14 15:08:40,166 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-14 15:08:40,166 - INFO - ================================================================================
+2025-07-14 15:08:40,168 - INFO - Content: {'title': "L'Art de la Photographie: Capturer l'Essence du Monde", 'content': '<article>\n<h2>L\'Art de la Photographie: Capturer l\'Essence du Monde</h2>\n\n<h3>Les Fondamentaux de la Photographie</h...
+2025-07-14 15:08:40,168 - INFO - ================================================================================
+2025-07-14 15:08:40,999 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=technology&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=5 "HTTP/1.1 200 OK"
+2025-07-14 15:08:41,504 - INFO - ✅ Content saved with ID: 6874d728424b429344e16f06
+2025-07-14 15:08:41,676 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-14 10:08:40 UTC]
+
+2025-07-14 15:08:41,677 - INFO - ⏰ Next check in 150 minutes...
+2025-07-14 15:11:14,935 - INFO - 🛑 Scheduler stop requested
+2025-07-14 15:11:15,147 - INFO - ✅ Database connections closed
+2025-07-14 15:11:15,147 - INFO - 🛑 Background scheduler stopped
+2025-07-14 15:11:15,148 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 15:11:29,124 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=technology&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=5 "HTTP/1.1 200 OK"
+2025-07-14 16:59:04,676 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-14 17:05:25,068 - INFO - 🛑 Background scheduler stopped
+2025-07-14 17:05:25,068 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 17:16:51,240 - INFO - 🛑 Background scheduler stopped
+2025-07-14 17:16:51,241 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 17:32:27,981 - INFO - 🛑 Background scheduler stopped
+2025-07-14 17:32:27,982 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 17:33:06,420 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-14 17:42:53,118 - INFO - 🛑 Background scheduler stopped
+2025-07-14 17:42:53,118 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 17:46:00,607 - INFO - 🛑 Background scheduler stopped
+2025-07-14 17:46:00,607 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 18:22:21,110 - INFO - 🛑 Background scheduler stopped
+2025-07-14 18:22:21,116 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 18:22:49,524 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-14 18:35:15,439 - INFO - 🛑 Background scheduler stopped
+2025-07-14 18:35:15,439 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 18:56:52,717 - INFO - 🛑 Background scheduler stopped
+2025-07-14 18:56:52,718 - INFO - ✅ Content scheduler stopped successfully
+2025-07-14 18:57:40,878 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-15 14:10:33,449 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 14:11:19,929 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 14:12:11,162 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 14:12:36,615 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 18:44:40,467 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-15 19:15:01,126 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 19:15:55,605 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 19:17:14,234 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 19:17:40,790 - INFO - 🛑 Background scheduler stopped
+2025-07-15 19:17:40,790 - INFO - ✅ Content scheduler stopped successfully
+2025-07-15 19:45:11,962 - INFO - Retrying request to /chat/completions in 0.426368 seconds
+2025-07-15 19:45:43,859 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 19:46:43,658 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 19:49:13,766 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-15 20:20:38,968 - INFO - 🛑 Background scheduler stopped
+2025-07-15 20:20:38,969 - INFO - ✅ Content scheduler stopped successfully
+2025-07-15 20:30:48,365 - INFO - 🛑 Background scheduler stopped
+2025-07-15 20:30:48,366 - INFO - ✅ Content scheduler stopped successfully
+2025-07-16 03:57:06,255 - INFO - 🚀 Background scheduler started
+2025-07-16 03:57:06,256 - INFO - ✅ Content scheduler started successfully
+2025-07-16 03:57:06,267 - INFO - ✅ Database connections initialized
+2025-07-16 03:57:06,268 - INFO - 📊 Source: scraper_db.generated_content
+2025-07-16 03:57:06,268 - INFO - 📊 Target: CRM.posts
+2025-07-16 03:57:06,269 - INFO - 🚀 Starting scheduler (150 min interval)...
+2025-07-16 03:57:06,269 - INFO - ✅ Scheduler initialized: scraper_db.generated_content -> CRM.posts
+2025-07-16 03:57:08,999 - INFO - ✅ READY TO PUBLISH: Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho...
+2025-07-16 03:57:09,000 - INFO - [PUBLISH LOG] 2025-07-15 22:57:08 UTC - Attempting to publish: Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho
+2025-07-16 03:57:09,001 - INFO - 
+📤 CONTENT BEING PUSHED TO DATABASE:
+2025-07-16 03:57:09,002 - INFO - ================================================================================
+2025-07-16 03:57:09,004 - INFO - Content: {'title': "Les Secrets de la Nature: Découvrez l'univers fascinant de Ninho", 'content': '<article>\n<h2>Les Secrets de la Nature: Découvrez l\'univers fascinant de Ninho</h2>\n\n<h3>Présentation de N...
+2025-07-16 03:57:09,004 - INFO - ================================================================================
+2025-07-16 03:57:10,627 - INFO - ✅ Content saved with ID: 6876dcc54418ee3e8587603e
+2025-07-16 03:57:10,805 - INFO - ✅ Published content (status updated in source DB). (Used UTC now) [PUBLISHED AT: 2025-07-15 22:57:08 UTC]
+
+2025-07-16 03:57:10,805 - INFO - ⏰ Next check in 150 minutes...
+2025-07-16 03:59:58,990 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-16 04:27:24,887 - INFO - 🛑 Scheduler stop requested
+2025-07-16 04:27:25,506 - INFO - ✅ Database connections closed
+2025-07-16 04:27:25,506 - INFO - 🛑 Background scheduler stopped
+2025-07-16 04:27:25,507 - INFO - ✅ Content scheduler stopped successfully
+2025-07-16 23:02:50,069 - INFO - 🛑 Background scheduler stopped
+2025-07-16 23:02:50,070 - INFO - ✅ Content scheduler stopped successfully
+2025-07-16 23:08:45,198 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:09:24,283 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:09:49,486 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=business&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:10:22,557 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:10:42,133 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:11:14,721 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:11:35,280 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:12:06,987 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:12:07,921 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=business&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:12:39,007 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:12:41,828 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:13:28,058 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:13:29,019 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:14:02,642 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:14:30,206 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:15:20,897 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:15:40,570 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:16:14,449 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:35:29,520 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:35:58,681 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:36:25,887 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=business&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:36:53,980 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:37:18,361 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:37:50,729 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:37:51,484 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:38:20,944 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:38:21,770 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=business&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:38:48,564 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:39:08,709 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:39:36,012 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:39:58,385 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:40:24,349 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:40:47,018 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=fashion&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:41:15,261 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-16 23:41:16,268 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-16 23:41:43,850 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 07:25:03,687 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-17 07:37:14,353 - INFO - 🛑 Background scheduler stopped
+2025-07-17 07:37:14,353 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 07:38:20,210 - INFO - 🛑 Background scheduler stopped
+2025-07-17 07:38:20,211 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 07:46:08,473 - INFO - 🛑 Background scheduler stopped
+2025-07-17 07:46:08,473 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 07:53:01,135 - INFO - 🛑 Background scheduler stopped
+2025-07-17 07:53:01,136 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 08:01:32,528 - INFO - 🛑 Background scheduler stopped
+2025-07-17 08:01:32,529 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 08:07:36,523 - INFO - 🛑 Background scheduler stopped
+2025-07-17 08:07:36,524 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 08:25:53,794 - INFO - 🛑 Background scheduler stopped
+2025-07-17 08:25:53,795 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 08:31:12,770 - INFO - 🛑 Background scheduler stopped
+2025-07-17 08:31:12,771 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 08:32:57,255 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:34:00,337 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:34:31,008 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:35:18,972 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:36:15,318 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:36:53,633 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:37:31,419 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:38:26,791 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:39:18,930 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:40:06,737 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:40:57,146 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:41:45,287 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:42:48,353 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 08:43:16,797 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:05:53,822 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:06:23,193 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:06:41,954 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=lifestyle&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:07:04,060 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:07:04,980 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:07:08,290 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:07:42,051 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:07:43,290 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=lifestyle&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:08:10,729 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:08:11,848 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:08:15,124 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:08:39,089 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 09:08:40,315 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:08:43,489 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 09:09:13,368 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:16:30,171 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:16:54,952 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:43:18,616 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:44:11,243 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:44:26,931 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:44:56,791 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:45:14,520 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:45:50,112 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:46:02,802 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:46:42,941 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:46:53,826 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:47:21,503 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:47:32,569 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:48:11,599 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:48:29,559 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 18:49:14,613 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 18:49:25,146 - INFO - 🛑 Background scheduler stopped
+2025-07-17 18:49:25,147 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 19:47:28,496 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-17 23:00:41,278 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:01:35,216 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:02:22,960 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:03:08,355 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:03:53,194 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:04:38,269 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:05:25,698 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:06:08,794 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:55:01,893 - INFO - 🛑 Background scheduler stopped
+2025-07-17 23:55:01,894 - INFO - ✅ Content scheduler stopped successfully
+2025-07-17 23:58:23,442 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-17 23:59:12,900 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 16:10:35,745 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 16:11:27,770 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 21:33:28,485 - INFO - 🛑 Background scheduler stopped
+2025-07-18 21:33:28,487 - INFO - ✅ Content scheduler stopped successfully
+2025-07-18 21:34:09,151 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 21:34:55,934 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 22:32:17,960 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-18 22:32:40,556 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 22:51:00,598 - INFO - 🛑 Background scheduler stopped
+2025-07-18 22:51:00,599 - INFO - ✅ Content scheduler stopped successfully
+2025-07-18 23:29:59,733 - INFO - 🛑 Background scheduler stopped
+2025-07-18 23:29:59,733 - INFO - ✅ Content scheduler stopped successfully
+2025-07-18 23:30:13,469 - INFO - 🛑 Background scheduler stopped
+2025-07-18 23:30:13,469 - INFO - ✅ Content scheduler stopped successfully
+2025-07-18 23:30:23,100 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-18 23:30:54,713 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-18 23:56:55,089 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=finance&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-18 23:57:20,698 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-19 16:27:16,052 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-19 16:27:34,741 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-19 18:59:13,279 - INFO - 🛑 Background scheduler stopped
+2025-07-19 18:59:13,279 - INFO - ✅ Content scheduler stopped successfully
+2025-07-19 19:37:46,134 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-19 19:38:03,490 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-19 19:40:27,908 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-19 19:40:48,894 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-21 13:40:15,567 - INFO - 🛑 Background scheduler stopped
+2025-07-21 13:40:15,567 - INFO - ✅ Content scheduler stopped successfully
