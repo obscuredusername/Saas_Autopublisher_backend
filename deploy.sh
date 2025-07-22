@@ -1,15 +1,23 @@
 #!/bin/bash
 
-echo "📥 Pulling latest code..."
-cd /var/www/Saas_AutoPublisher/backend || exit
+echo "Pulling latest changes..."
 git pull origin main
 
-echo "🐳 Rebuilding Docker image..."
-docker build -t saas_backend .
+echo "Stopping old container..."
+docker stop saas-api || true
 
-echo "🔁 Restarting container..."
-docker stop saas_backend_container || true
-docker rm saas_backend_container || true
-docker run -d --name saas_backend_container -p 8000:8000 saas_backend
+echo "Removing old container..."
+docker rm saas-api || true
 
-echo "✅ Deployment complete"
+echo "Building new Docker image..."
+docker build -t backend-api .
+
+echo "Running new container..."
+docker run -d -p 8000:8000 --name saas-api backend-api
+
+echo "Deployment complete!"
+
+echo "Webhook triggered at $(date)" >> /tmp/webhook.log
+
+echo "Latest commit: $(git log -1 --pretty=%B)"
+
