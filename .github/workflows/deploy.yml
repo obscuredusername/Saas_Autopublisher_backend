@@ -21,15 +21,16 @@ jobs:
       - name: Deploy to VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd /var/www/Saas_Autopublisher_backend
+            cd /var/www/Saas_AutoPublisher/backend
             git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt --break-system-packages
 
-            # Restart or start FastAPI app via PM2 using python3 interpreter
+            # Restart or start the FastAPI app with PM2
             pm2 restart saas-api || \
-              pm2 start venv/bin/uvicorn --interpreter python3 --name saas-api -- main:app --host 0.0.0.0 --port 8000
+              pm2 start venv/bin/uvicorn --interpreter python3 --name saas-api -- app:app --host 0.0.0.0 --port 8000
 
-            # Optional: Reload nginx if config changed
+            # Optionally reload nginx
             sudo systemctl reload nginx
           EOF
+
