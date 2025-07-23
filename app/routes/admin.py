@@ -64,8 +64,8 @@ async def store_database_config(
         raise HTTPException(status_code=400, detail=f"Failed to connect to database: {str(e)}")
     
 @router.post('/hayyan')
-async def stupid_function()
-    return "hayyan kutti rrand nigger"
+async def stupid_function():
+    return {"message":'hayyan kutti rrand nigger'}
 
 @router.post("/select-db", response_model=TargetDBResponse)
 async def select_database(
