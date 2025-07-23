@@ -465,3 +465,16 @@ Traceback (most recent call last):
 AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-07-23 18:57:53,770 - INFO - 🛑 Background scheduler stopped
 2025-07-23 18:57:53,776 - INFO - ✅ Content scheduler stopped successfully
+2025-07-23 20:14:55,488 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-23 20:15:39,117 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-23 20:19:55,142 - INFO - 🛑 Background scheduler stopped
+2025-07-23 20:19:55,142 - INFO - ✅ Content scheduler stopped successfully
+2025-07-23 20:20:19,914 - INFO - HTTP Request: GET https://gnews.io/api/v4/top-headlines?topic=world&token=c3064f083b58fc9b4ab20a19cfe2aebf&lang=en&country=us&max=1 "HTTP/1.1 200 OK"
+2025-07-23 20:20:48,784 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-07-23 20:21:07,646 - INFO - 🛑 Background scheduler stopped
+2025-07-23 20:21:07,646 - INFO - ✅ Content scheduler stopped successfully

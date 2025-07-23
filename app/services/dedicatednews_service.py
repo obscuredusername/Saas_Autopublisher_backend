@@ -74,7 +74,7 @@ class DedicatedNewsService:
         scraped = self.scraper.scrape_multiple_urls(links, target_count=len(links))
         # Pass to GPT rewriting pipeline
         news_service = NewsService()
-        rewritten = await news_service.generate_blog_posts_from_news(scraped, category, language, db, user_email, save_to_db=True)
+        rewritten = await news_service.generate_blog_posts_from_news(scraped, category, language, db, user_email)
         return {"category": category, "rewritten": rewritten}
 
     async def fetch_all(self, category, max_results, language, country, db=None, user_email="news@system.com"):
@@ -107,7 +107,7 @@ class DedicatedNewsService:
                 continue
             scraper = WebContentScraper()
             scraped = scraper.scrape_multiple_urls([url], target_count=1)
-            generated = await news_service.generate_blog_posts_from_news(scraped, cat, language, db, user_email, save_to_db=True)
+            generated = await news_service.generate_blog_posts_from_news(scraped, cat, language, db, user_email)
             results.append({"category": cat, "scheduledAt": str(scheduled_time), "result": generated})
         return {"scheduled": results}
 
@@ -131,7 +131,7 @@ class DedicatedNewsService:
         # Pass to GPT rewriting pipeline
         news_service = NewsService()
         print(f"[YAHOO] Starting rephrasing and image generation for {len(scraped)} articles...")
-        rewritten = await news_service.generate_blog_posts_from_news(scraped, category, language, db, user_email, save_to_db=True)
+        rewritten = await news_service.generate_blog_posts_from_news(scraped, category, language, db, user_email)
         print(f"[YAHOO] Rephrasing and image generation complete for category '{category}'.")
         return {"category": category, "articles": [{"url": l} for l in links], "rewritten": rewritten}
 
@@ -157,6 +157,6 @@ class DedicatedNewsService:
                 continue
             scraper = WebContentScraper()
             scraped = scraper.scrape_multiple_urls([url], target_count=1)
-            generated = await news_service.generate_blog_posts_from_news(scraped, cat, language, db, user_email, save_to_db=True)
+            generated = await news_service.generate_blog_posts_from_news(scraped, cat, language, db, user_email)
             results.append({"category": cat, "scheduledAt": str(scheduled_time), "result": generated})
         return {"scheduled": results} 
