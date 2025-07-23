@@ -27,6 +27,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             cd ${{ secrets.APP_DIR }}
-            docker-compose down
-            docker-compose up -d --build
+            docker compose down
+            docker compose up -d --build
           EOF
