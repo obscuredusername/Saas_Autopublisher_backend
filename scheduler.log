@@ -455,3 +455,13 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-07-22 11:18:03,513 - INFO - ✅ Content scheduler stopped successfully
 2025-07-23 00:26:24,354 - INFO - 🛑 Background scheduler stopped
 2025-07-23 00:26:24,355 - INFO - ✅ Content scheduler stopped successfully
+2025-07-23 18:36:00,420 - INFO - 🛑 Background scheduler stopped
+2025-07-23 18:36:00,420 - INFO - ✅ Content scheduler stopped successfully
+2025-07-23 18:47:11,089 - WARNING - (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/home/prosperity/Desktop/code/crective/Saas_AutoPublisher/backend/venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-07-23 18:57:53,770 - INFO - 🛑 Background scheduler stopped
+2025-07-23 18:57:53,776 - INFO - ✅ Content scheduler stopped successfully

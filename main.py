@@ -94,5 +94,5 @@ if __name__ == "__main__":
     print("🌍 Server running at: http://localhost:8000")
     print("📖 API docs at: http://localhost:8000/docs")
     print("⏰ Content scheduler will run in background")
-    print("⏰ ==============================")
+    print("⏰ =============================")
     uvicorn.run(app, host="0.0.0.0", port=8000)
