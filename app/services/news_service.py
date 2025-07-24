@@ -177,6 +177,7 @@ class NewsService:
             image_generator = ImageGenerator()
             
             generated_posts = []
+            filepath = None  # <-- Initialize filepath to None
             
             # --- NEW ROTATION LOGIC ---
             start_time = datetime.datetime.now(datetime.timezone.utc).replace(hour=8, minute=0, second=0, microsecond=0)
@@ -366,7 +367,7 @@ CONTENT: [detailed rephrased content in HTML format here]
                         # End direct save
                         # Delete any temporary HTML file if it exists
                         try:
-                            if 'filepath' in locals() and os.path.exists(filepath):
+                            if filepath and os.path.exists(filepath):
                                 os.remove(filepath)
                                 print(f"🗑️ Deleted temporary HTML file: {filepath}")
                         except Exception as e:
