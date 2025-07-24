@@ -1,7 +1,0 @@
-{
-  "port": 9000,
-  "path": "/webhook",
-  "secret": "your_secret_here",
-  "command": "/bin/bash /var/www/Saas_AutoPublisher/backend/deploy.sh"
-}
-
